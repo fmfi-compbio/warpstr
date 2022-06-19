@@ -1,0 +1,42 @@
+reference_path: /home/skanderbeg/Documents/dtw_trcall/GRCh38.fa # path to the reference, that was used to obtain SAM/BAM
+output: /home/skanderbeg/Documents/data/na12878   # Where everything will be outputted
+
+# List of input files. Each new entry starts with dash "-".
+# This signals where to find input data like .bam and .fast5
+inputs:                       
+  - path: /mnt_sda/MinISTR 
+    samples: 84_15,370_2014,394_2016
+  - path: /mnt_sdc/MinISTR
+    samples: 84_15,370_2014,394_2016
+
+# if you are re-running the analysis, here you can set which steps to skip by setting them to False
+single_read_extraction: False   # Extracts reads mapped to the locus and stores them in single .fast5 format
+guppy_annotation:       False   # Annotates .fast5 files with mapping between basecalled sequence and the signal
+exp_signal_generation:  True   # Generates expected signals for flanks and repeats
+tr_region_extraction:   False   # Finds tandem repeat region in read using alignment of basecalled sequence and reference repeat sequence
+tr_region_calling:      True   # Uses state automata with DTW alignment to find the number of repeats for each signal
+genotyping:             True   # Predicts the final allele lengths from the predicted repeat numbers of each read 
+
+# in case of using GUPPY (i.e. guppy_annotation=True), path to Guppy must be provided and info about .fast5 files
+guppy_config:
+    path: /mnt_sda/master_of_pores/NanoPreprocess/bin/ont-guppy/bin/guppy_basecaller
+    flowcell: FLO-MIN106
+    kit: SQK-LSK109
+
+# here provide a configuration for desired loci
+# Each loci must be defined by name and genomic coordinates.
+# Input sequence for state automata is defined in 'sequence' element. 
+# If not set, it will be automatically set using defined patterns in 'motif' element and the reference repeat region
+# Also, either 'motif' patterns must be defined or configured sequence
+loci:
+  - name: HD                                  # Required
+    coord: chr4:3,074,878-3,074,967           # Required
+    noting: AGC[19]AAC[1]AGC[1]CGC[1]CAC[1]CGC[7]
+    motif: AGC,CGC                            # Set this or 'sequence'
+    # sequence: (AGC)AACAGCCGCCAC(CGC)        # Or set this - recommended for more advanced users.
+    # flank_length: 110                       # Optional, default: 110
+  - name: DM2
+    coord: chr3:129,172,577-129,172,732
+    noting: GGCA[7]GACA[1]GGCA[1]GACA[1]GGCA[1]GCCA[1]GGCA[8]GACA[10]CA[17]
+    sequence: ((CAGG){CAGM})(CAGA)(CA)
+    flank_length: 110

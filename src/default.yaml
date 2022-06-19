@@ -1,0 +1,38 @@
+verbose: 0 #
+threads: 2 #
+force_overwrite: False          # remove any previous results if exist
+flank_length: 110               # default flank length, if not set in locus configuration
+pore_model_path: example/deps/template_median68pA.model
+
+# Parameters for TR calling
+tr_calling_config:
+    spike_removal: Brute        # Allowed None, median3, median5, Brute # Defines whether to remove spikes. 
+    normalization: MAD          # possible: MAD
+    min_values_per_state: 4     # Int, defines the minimum number of signal values required to map to one state
+    states_in_segment: 6        # defines how many states are in window when segmenting
+    min_state_similarity: 0.75  # Float, defines the minimum similarity between repeat states to raise a warning
+    visualize_alignment: True   # Whether to output alignments of each signal, in predictions/DTW_alignments
+    visualize_phase: True       # Whether to output prediction comparison of phases, in summaries/predictions_phase.svg
+    visualize_strand: True      # Whether to output prediction comparison of strands, in summaries/predictions_strand.svg
+    visualize_cost: True        # Whether to output scatterplot of prediction vs state-wise cost, in summaries/predictions_cost.svg
+    rescaling:                  # The second phase of WarpSTR aligning - rescale signal values to better fit mapped expected signal values
+        reps_as_one: False      # Whether to merge signal points of the repeating state together or not
+        threshold: 0.5          # Max distance between state value and expected value to use the state for rescaling
+        max_std: 0.5            # Max std for signal points of the state to use that state for rescaling
+        method: mean            # Allowed: mean, median # Defines how to calculate state value from mapped signal points
+
+# Parameters for genotyping
+genotyping_config:
+    min_weight: 0.2             # When one mixture model component has lower weight than this, the allele is declared as homozygous
+    std_filter: 2               # Filter out predictions which are out of range: mean +- 2*std_filter
+    visualize: True             # Whether to output violinplot of clusters as alleles.svg in summaries folder
+    msa: False                   # Whether to run muscle to get multiple sequence alignment of predictions and basecalls
+
+# Parameters for aligning flanking sequences with basecalled sequence
+alignment:
+    accuracy_factor: 1.15       # Flank is deemed as not found when the ratio of its alignment score and length is lower than this
+    identity_factor: 0.85       # Flank is deemed as not found when its alignment has lower identity than this
+    match_score: 2              # Score for a match
+    mismatch_score: -3          # Score for a mismatch
+    gap_open_score: -3          # Score when opening a new gap
+    gap_extend_score: -3        # Score when extending a gap. Must be equal or less than gap_open_score

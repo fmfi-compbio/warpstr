@@ -1,0 +1,163 @@
+body {  font-family: Arial;background-color: #f1f1f1;}
+h1 { margin-left: 40px;}
+h2 {text-align: center;}
+
+.collapsible {
+  background-color: #E0E0E0;
+  color: #444;
+  cursor: pointer;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 14px;
+}
+
+.active, .collapsible:hover {
+  background-color: #C1C1C1;
+}
+
+.content {
+  padding: 0 10px;
+  display: none;
+  overflow: hidden;
+  background-color: #E5E5E5;
+} 
+
+.summarytable { 
+  margin-left: auto;  
+  margin-right: auto; 
+  width: 50%
+  font-size: 12pt;     
+  font-family: Arial;    
+  border-collapse: collapse;     
+  border: 2px solid black;
+}
+
+.summarytable td, th {    
+  padding: 5px;
+}
+
+.summarytable tr:nth-child(even) {    
+  background: #E0E0E0;
+}
+
+.summarytable tr:hover {    
+  background: silver;    
+  cursor: pointer;
+}
+
+.table a{    
+  display:block;    
+  text-decoration:none;
+}
+    
+.column {  
+  float: left;  
+  width: auto;  
+  padding: 5px;
+}
+
+.row::after {  
+  content: "";  
+  clear: both;  
+  display: table;
+}
+
+#myInput {
+  background-position: 10px 12px; /* Position the search icon */
+  background-repeat: no-repeat; /* Do not repeat the icon image */
+  width: 100%; /* Full-width */
+  font-size: 16px; /* Increase font-size */
+  padding: 12px 20px 12px 40px; /* Add some padding */
+  border: 1px solid #ddd; /* Add a grey border */
+  margin-bottom: 12px; /* Add some space below the input */
+}
+
+#myTable {
+  font-family: Arial; 
+  border-collapse: collapse; /* Collapse borders */
+  width: 75%; /* Full-width */
+  border: 3px solid black; /* Add a grey border */
+  font-size: 14px; /* Increase font-size */
+}
+
+#myTable th, #myTable td {
+  text-align: center; /* Left-align text */
+  padding: 12px; /* Add padding */
+}
+
+#myTable tr {
+  /* Add a bottom border to all table rows */
+  border-bottom: 1px solid black;
+}
+
+#myTable tr.header, #myTable tr:hover {
+  /* Add a grey background color to the table header and on hover */
+  background-color: #b3b3b3;
+}
+
+#simple_states {
+  overflow: scroll;
+  max-width: 1600px;
+  max-height: 600px;
+}
+
+#select {
+    width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: inherit;
+  line-height: inherit;
+  z-index: 1;    
+}
+
+.select {
+  display: grid;
+  grid-template-areas: "select";
+  align-items: center;
+  position: relative;
+
+  min-width: 15ch;
+  max-width: 30ch;
+  border: 1px solid var(--select-border);
+  border-radius: 0.25em;
+  padding: 0.25em 0.5em;
+
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1.1;
+}
+
+#lists {
+ /*border: 2px solid blue;*/
+ position: relative;
+ width: 50%;
+ display:inline-block;
+ font-size: 16px; 
+    
+}
+
+#list_one {
+ width: 40%;
+ border: 2px solid black;
+ float:left;
+      border-radius: 4px;
+  background-color: #f1f1f1;
+      display: flex;
+  align-items: center;
+  justify-content: center
+}
+
+#list_two {
+ width: 40%;
+ border: 2px solid black;
+ position: relative;
+ float:right;
+      border-radius: 4px;
+  background-color: #f1f1f1;
+      display: flex;
+  align-items: center;
+  justify-content: center
+}
