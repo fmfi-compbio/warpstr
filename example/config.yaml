@@ -5,9 +5,9 @@ output: /home/skanderbeg/Documents/data/na12878   # Where everything will be out
 # This signals where to find input data like .bam and .fast5
 inputs:                       
   - path: /mnt_sda/MinISTR 
-    samples: 84_15,370_2014,394_2016
+    runs: 84_15,370_2014,394_2016
   - path: /mnt_sdc/MinISTR
-    samples: 84_15,370_2014,394_2016
+    runs: 84_15,370_2014,394_2016
 
 # if you are re-running the analysis, here you can set which steps to skip by setting them to False
 single_read_extraction: False   # Extracts reads mapped to the locus and stores them in single .fast5 format

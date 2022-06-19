@@ -299,7 +299,6 @@ class DtwAutomata:
         rev_end_state = self.rev_sta.endstate
         visualize = self.config['visualize_alignment']
 
-        print("rozbehavam")
         results = []
         if self.threads>1:
             with Pool(self.threads) as pool:

@@ -62,7 +62,7 @@ for locus in config['loci']:
     #1st step: finding reads mapped to the desired locus and extracting them as single fast5s
     if config['single_read_extraction']:
         for data_path in config['inputs']:
-            samples = data_path['samples'].split(',')
+            samples = data_path['runs'].split(',')
             results_dict = extract_reads(data_path['path'],locus['coord'],samples, locus_path,threads=threads) 
             print("Finished extraction of single fast5 reads mapped to the locus",locus['name'])
             if verbose==1:
