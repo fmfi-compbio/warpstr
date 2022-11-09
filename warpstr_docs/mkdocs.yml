@@ -4,12 +4,12 @@ theme:
   name: material
   palette:
     - scheme: default
-      primary: indigo
+      primary: amber
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - scheme: slate
-      primary: indigo
+      primary: amber
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -21,7 +21,21 @@ theme:
 nav:
   - Home: index.md
   - Install: installation.md
-  - Running: 
-    - Input: input.md
+  - Running:
+    - Overview: running_overview.md
     - Config: config.md
+    - Advanced parameters: advanced_params.md
   - Output: output.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: True
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
