@@ -10,10 +10,10 @@ inputs:
     runs: 84_15,370_2014,394_2016
 
 # if you are re-running the analysis, here you can set which steps to skip by setting them to False
-single_read_extraction: False   # Extracts reads mapped to the locus and stores them in single .fast5 format
-guppy_annotation:       False   # Annotates .fast5 files with mapping between basecalled sequence and the signal
+single_read_extraction: True   # Extracts reads mapped to the locus and stores them in single .fast5 format
+guppy_annotation:       True   # Annotates .fast5 files with mapping between basecalled sequence and the signal
 exp_signal_generation:  True   # Generates expected signals for flanks and repeats
-tr_region_extraction:   False   # Finds tandem repeat region in read using alignment of basecalled sequence and reference repeat sequence
+tr_region_extraction:   True   # Finds tandem repeat region in read using alignment of basecalled sequence and reference repeat sequence
 tr_region_calling:      True   # Uses state automata with DTW alignment to find the number of repeats for each signal
 genotyping:             True   # Predicts the final allele lengths from the predicted repeat numbers of each read 
 
@@ -31,7 +31,7 @@ guppy_config:
 loci:
   - name: HD                                  # Required
     coord: chr4:3,074,878-3,074,967           # Required
-    noting: AGC[19]AAC[1]AGC[1]CGC[1]CAC[1]CGC[7]
+    noting: AGC[19]AAC[1]AGC[1]CGC[1]CAC[1]CGC[7] # Concise representation of reference locus. This is only descriptive
     motif: AGC,CGC                            # Set this or 'sequence'
     # sequence: (AGC)AACAGCCGCCAC(CGC)        # Or set this - recommended for more advanced users.
     # flank_length: 110                       # Optional, default: 110
