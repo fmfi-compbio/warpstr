@@ -4,6 +4,8 @@ WarpSTR is an alignment-free algorithm for analysing STR alleles using nanopore 
 
 See our preprint at: <https://www.biorxiv.org/content/10.1101/2022.11.05.515275v1>
 
+See below for some quick steps how to install and run WarpSTR, or refer to more detailed [documentation](https://fmfi-compbio.github.io/warpstr/).
+
 ## Installation
 
 WarpSTR can be easily installed using conda environment, frozen in `conda_req.yaml`. The conda environment can be created as follows:
