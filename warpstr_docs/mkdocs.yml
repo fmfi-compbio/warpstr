@@ -18,6 +18,9 @@ theme:
     - navigation.top  # back to top button
     - search.highlight
 
+repo_name: 'fmfi-compbio/warpstr'
+repo_url: 'https://github.com/fmfi-compbio/warpstr/'
+
 nav:
   - Home: index.md
   - Install: installation.md

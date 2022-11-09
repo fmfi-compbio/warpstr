@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+warpstr_docs/site/
+
 # C extensions
 *.so
 
