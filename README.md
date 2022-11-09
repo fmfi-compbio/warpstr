@@ -101,4 +101,4 @@ In the `summaries` directory of each locus there is a myriad of optional visuali
 
 ## Additional information
 
-Newer .fast5 files are usually VBZ compressed, therefore VBZ plugin for HD5 is required to be installed, so WarpSTR can handle such files. See `https://github.com/nanoporetech/vbz_compression`. 
+Newer .fast5 files are usually VBZ compressed, therefore VBZ plugin for HD5 is required to be installed, so WarpSTR can handle such files. See <https://github.com/nanoporetech/vbz_compression>. It should be enough to just install .deb package from release and export the path: `export HDF5_PLUGIN_PATH=/usr/local/hdf5/lib/plugin`.

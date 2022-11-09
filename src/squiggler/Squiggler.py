@@ -14,6 +14,8 @@ class Squiggler:
 
     def __init__(self, pore_model_path, reference_path):
         self.pore_model, self.kmersize = load_pore_model(pore_model_path)
+        if not os.path.exists(reference_path):
+            raise FileNotFoundError(f'Reference was not found on path="{reference_path}"')
         self.ref_path = reference_path
 
     def generate_signal(self, sequence):

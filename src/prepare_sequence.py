@@ -1,12 +1,9 @@
-
-from re import A
 import pysam
-import argparse
-import pandas as pd
-import yaml
-from collections import OrderedDict
+import os
 
 def prepare_sequence(locus, reference_path):
+    if not os.path.exists(reference_path):
+        raise FileNotFoundError(f'Reference was not found on path="{reference_path}"')
     fa_seq = pysam.faidx(reference_path,locus['coord'])
     seq = ''.join(fa_seq.split("\n")[1:])
     noting_seq = ''.join(fa_seq.split("\n")[1:])
