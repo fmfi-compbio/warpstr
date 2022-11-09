@@ -1,0 +1,27 @@
+site_name: WarpSTR documentation
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.top  # back to top button
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - Install: installation.md
+  - Running: 
+    - Input: input.md
+    - Config: config.md
+  - Output: output.md
