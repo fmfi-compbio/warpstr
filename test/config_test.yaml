@@ -1,0 +1,35 @@
+reference_path: GRCh38.fa # path to the reference, that was used to obtain SAM/BAM
+output: test/   # Where everything will be outputted
+
+# List of input files. Each new entry starts with dash "-".
+# This signals where to find input data like .bam and .fast5
+inputs:                       
+  - path: test/test_input/
+    runs: test_run1
+
+# if you are re-running the analysis, here you can set which steps to skip by setting them to False
+single_read_extraction: True   # Extracts reads mapped to the locus and stores them in single .fast5 format
+guppy_annotation:       True   # Annotates .fast5 files with mapping between basecalled sequence and the signal
+exp_signal_generation:  True   # Generates expected signals for flanks and repeats
+tr_region_extraction:   True   # Finds tandem repeat region in read using alignment of basecalled sequence and reference repeat sequence
+tr_region_calling:      True   # Uses state automata with DTW alignment to find the number of repeats for each signal
+genotyping:             True   # Predicts the final allele lengths from the predicted repeat numbers of each read 
+
+# in case of using GUPPY (i.e. guppy_annotation=True), path to Guppy must be provided and info about .fast5 files
+guppy_config:
+    path: /home_pfs/tools/ont-guppy-cpu-4.0.15/bin/guppy_basecaller
+    flowcell: FLO-MIN106
+    kit: SQK-LSK109
+
+# here provide a configuration for desired loci
+# Each loci must be defined by name and genomic coordinates.
+# Input sequence for state automata is defined in 'sequence' element. 
+# If not set, it will be automatically set using defined patterns in 'motif' element and the reference repeat region
+# Also, either 'motif' patterns must be defined or configured sequence
+loci:
+  - name: Human_STR_1108232
+    coord: chr4:183178378-183178421
+    # noting: AAAT[11]
+    # motif: AAAT
+    sequence: (AAAT)
+    # flank_length: 110
