@@ -9,7 +9,6 @@ def store_collapsed(results, units, rep_units, reverse_lst, locus_path):
     Stores results as given by repeat units
     """
     preds = {}
-    print(rep_units)
     for idx, i in enumerate(units):
         if len(results[0][idx]) > 1:
             main = "main_"+rep_units[idx][0]

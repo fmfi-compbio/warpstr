@@ -17,15 +17,15 @@ THREADS=$6;
 SAVEPATH=$SAMPLEPATH/"aux"
 mkdir -p $SAVEPATH
 
-
-echo "calling script $GUPPY --input_path $SAMPLEPATH --save_path $SAVEPATH --flowcell $FLOWCELL --kit $KIT --fast5_out --cpu_threads_per_caller $THREADS"
-( $GUPPY --input_path $SAMPLEPATH --save_path $SAVEPATH --flowcell $FLOWCELL --kit $KIT --fast5_out --cpu_threads_per_caller $THREADS)
+echo "Running Guppy..."
+>&2 echo "calling script $GUPPY --input_path $SAMPLEPATH --save_path $SAVEPATH --flowcell $FLOWCELL --kit $KIT --fast5_out --cpu_threads_per_caller $THREADS"
+( $GUPPY --input_path $SAMPLEPATH --save_path $SAVEPATH --flowcell $FLOWCELL --kit $KIT --fast5_out --cpu_threads_per_caller $THREADS 1>&2)
 
 WORKSPACEPATH=$SAVEPATH/"workspace"
 ANNOTPATH=$SAMPLEPATH/$OUT_SUFFIX
 mkdir -p $ANNOTPATH
 
-echo "find $WORKSPACEPATH -maxdepth 1 -name "*.fast5" -print0 | xargs  -0 cp -t $ANNOTPATH;"
+>&2 echo "find $WORKSPACEPATH -maxdepth 1 -name "*.fast5" -print0 | xargs  -0 cp -t $ANNOTPATH;"
 find $WORKSPACEPATH -maxdepth 1 -name "*.fast5" -print0 | xargs  -0 cp -t $ANNOTPATH;
 
 rm -r $SAVEPATH
