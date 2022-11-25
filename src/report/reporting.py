@@ -330,7 +330,8 @@ def create_report(main_out_path, tr_results_seq,locus,locus_path,src_path):
 
             f.write("<h2>Report for "+locus['name']+"</h2>")
             f.write(create_html_table('summaryTable',summary_df,'summarytable'))      
-            f.write("<h2>Locus reference: "+locus['noting']+"</h2>")
+            if 'noting' in locus:
+                f.write("<h2>Locus reference: "+locus['noting']+"</h2>")
             f.write("<h2>"+reference+"</h2>")
             f.write("<h2>TR length: "+str(len(reference))+"</h2>")
             f.write("<h2 id='input_sequence'>Our input sequence: "+locus['sequence']+"</h2>")

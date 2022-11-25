@@ -23,7 +23,6 @@ def plot_collapsed(df_overview, locus_path):
     plt.close()
 
     df_template = df_overview[df_overview["reverse"] == False]
-    print(df_template)
     df_reverse = df_overview[df_overview["reverse"] == True]
     out_path = os.path.join(locus_path, tmpl.SUMMARY_SUBDIR,
                             "collapsed_predictions_strand.svg")

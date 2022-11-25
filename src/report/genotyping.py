@@ -125,6 +125,8 @@ def run_genotyping_overview(overview, locus_path, config, muscle_path):
         f.write("{a1},{a1f},{a2},{a2f},".format(a1=alleles[0],a1f=alleles[1],a2=alleles[2],a2f=alleles[3]))
         f.write("{b1},{b1f},{b2},{b2f}".format(b1=alleles_bc[0],b1f=alleles_bc[1],\
                                                          b2=alleles_bc[2],b2f=alleles_bc[3]))
+    print(f"Allele lengths as given by WarpSTR: {alleles[0]},{alleles[2]}, frequency: {alleles[1]},{alleles[3]}")
+    print(f"Allele lengths as given by basecall: {alleles_bc[0]},{alleles_bc[2]}, frequency: {alleles_bc[1]},{alleles_bc[3]}")
     if config['visualize']:
         img_path = os.path.join(locus_path,tmpl.SUMMARY_SUBDIR,"alleles.svg")
         vals = (gmm_out_dict["group1"],gmm_out_dict["group2"])

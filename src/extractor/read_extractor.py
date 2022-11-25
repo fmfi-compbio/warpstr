@@ -62,15 +62,15 @@ class Extractor:
         dbg_msg = "There are {num} in {path}".format(
             num=len(fast5names_lst), path=self.path)
         handle_msg_dbg(dbg_msg)
-
+        print("reads are",fast5names_lst)
         # find all multi fast5 files and extract only single fast5s
         for dirpath, dirnames, filenames in os.walk(self.path):
             for filename in [f for f in filenames if f.endswith(".fast5")]:
                 fast5path = os.path.join(dirpath, filename)
                 fast5file = h5py.File(fast5path, 'r')
-                found = False
 
                 # check if read exists in this multi fast5 file
+                found_lst = [] 
                 for readname in fast5names_lst:
                     if readname in fast5file:
                         new_path = os.path.join(
@@ -82,11 +82,8 @@ class Extractor:
                                 err=e, read=readname, path=fast5file)
                             handle_msg_err(err_msg)
 
-                        r = readname
-                        found = True
-                        break
-                if found:
-                    fast5names_lst.remove(r)
+                        found_lst.append(readname)
+                fast5names_lst = [name for name in fast5names_lst if name not in found_lst]
 
             if len(fast5names_lst) == 0:
                 dbg_msg = "All raw fast5 files have been successfully extracted"
