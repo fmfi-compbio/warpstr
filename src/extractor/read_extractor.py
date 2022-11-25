@@ -62,7 +62,6 @@ class Extractor:
         dbg_msg = "There are {num} in {path}".format(
             num=len(fast5names_lst), path=self.path)
         handle_msg_dbg(dbg_msg)
-        print("reads are",fast5names_lst)
         # find all multi fast5 files and extract only single fast5s
         for dirpath, dirnames, filenames in os.walk(self.path):
             for filename in [f for f in filenames if f.endswith(".fast5")]:
