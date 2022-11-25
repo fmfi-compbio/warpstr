@@ -32,10 +32,22 @@ inputs:
     runs: test_run1
 ```
 
+In the test data, there is only one run, called `test_run1` with all sequencing files stored there (i.e. BAM files and .fast5 files):
+
+```bash
+test_input/
+└── test_run1
+    ├── fast5s
+    │   └── batch_0.fast5
+    └── mapping
+        ├── mapping.bam
+        └── mapping.bam.bai
+```
+
 !!!note
     In WarpSTR, we allow for multiple sequencing runs, which are defined by `runs` element, where other runs are defined by comma, i.e. `test_run1,test_run2` and so on. WarpSTR concatenates `path` value with each comma splitted value of `runs` to obtain a list of paths, that are then search recursively for input files (.BAM and .fast5 files).
 
-In the test data, there is only one run, called `test_run1` with all sequencing files stored there (i.e. BAM files and .fast5 files). To run test data, you need to define `reference_path` and `guppy_config.path` in the config, or you can use provided wrapper bash script `run_test_case.sh`. Simply, when in WarpSTR directory (and with activated conda environment), run the wrapper script:
+To run test data, you need to define `reference_path` and `guppy_config.path` in the config, or you can use provided wrapper bash script `run_test_case.sh`. Simply, when in WarpSTR directory (and with activated conda environment), run the wrapper script:
 
 ```bash
 bash run_test_case.sh

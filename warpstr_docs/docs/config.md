@@ -24,6 +24,9 @@ inputs:
 
 Each directory as given by `path` and `runs`, i.e. `/data/subjectXY/run_1` and so on, is traversed by WarpSTR to find .bam files and .fast5 files.
 
+!!!tip
+    See [Test case](installation.md#test-case) for an example of test data and associated config.
+
 ### Reference path
 
 Path to the reference fasta file. The reference is required for two things:
