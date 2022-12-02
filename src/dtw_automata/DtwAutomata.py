@@ -248,7 +248,7 @@ def get_workload(df_overview, locus_path, config):
         if row.saved:
             fast5path = os.path.join(locus_path, tmpl.FAST5_SUBDIR, str(
                 row.run_id), tmpl.ANNOT_SUBDIR, row.Index+".fast5")
-            fast5 = Fast5(fast5path,config)
+            fast5 = Fast5(fast5path,config,get_data_only=True)
             norm_signal = fast5.get_data_processed((row.l_start_raw,row.r_end_raw))
             tr_regions.append((norm_signal, row.reverse, row.Index))
     return tr_regions

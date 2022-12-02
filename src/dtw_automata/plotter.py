@@ -104,7 +104,14 @@ def plot_summaries(locus_path, df_out, config):
     df_out["reverse"] = df_out["reverse"].astype(float)
 
     df_saved = df_out[df_out['saved'] == 1]
-    df_out["bc_length"] = df_out["r_seq_start"]-df_out["l_seq_end"]
+
+    if 'r_seq_start' in df_out and 'l_seq_end' in df_out:
+        df_out["bc_length"] = df_out["r_seq_start"]-df_out["l_seq_end"]
+        use_basecall = True
+    else:
+        use_basecall = False
+        df_out["bc_length"] = 0
+
     df_rev = df_out[(df_out['reverse'] == 1) & (df_out['saved'] == 1)]
     df_temp = df_out[(df_out['reverse'] == 0) & (df_out['saved'] == 1)]
 

@@ -4,7 +4,7 @@ import sys
 import yaml
 
 
-def load_args(script_path):
+def load_args(script_path: str):
     """
     Parses input args and returns parsed config
     """

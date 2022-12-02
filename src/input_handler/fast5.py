@@ -8,7 +8,7 @@ class Fast5:
     Class for fast5 files and methods for processing them
     """
 
-    def __init__(self, fast5path, config_input=None):
+    def __init__(self, fast5path, config_input=None,get_data_only=False):
         self.handle = h5py.File(fast5path, 'r')
         self.data = None
         self.fasta = None
@@ -17,17 +17,22 @@ class Fast5:
         self.strand_start = None
         self.norm = None
         self.tag = None
-        for j in [i for i in self.handle['Analyses'].keys() if i.startswith("Basecall")]:
-            if 'BaseCalled_template' in self.handle['Analyses'][j].keys():
-                self.tag = j[-3:]
-        self.bc_tag = "Basecall_1D_"+self.tag
-        self.seg_tag = "Segmentation_"+self.tag
         if config_input is not None:
             self.normalization = config_input['normalization']
             self.spike_removal = config_input['spike_removal']
         else:
             self.normalization = "None"
             self.spike_removal = "None"
+        if not(get_data_only):
+            self.use_basecall(config_input)
+        
+    def use_basecall(self, config_input):
+        for j in [i for i in self.handle['Analyses'].keys() if i.startswith("Basecall")]:
+            if 'BaseCalled_template' in self.handle['Analyses'][j].keys():
+                self.tag = j[-3:]
+        self.bc_tag = "Basecall_1D_"+self.tag
+        self.seg_tag = "Segmentation_"+self.tag
+
 
     def get_tr_extract_reqs(self):
         """

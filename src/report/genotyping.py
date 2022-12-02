@@ -49,7 +49,7 @@ def decode_alleles_complex(gmm_out_dict, df):
         mediangroup2_cnt = '-'
     return (mediangroup1, mediangroup1_cnt, mediangroup2, mediangroup2_cnt)
 
-def decode_alleles(gmm_out_dict,gmm_out_dict_bc):
+def decode_alleles(gmm_out_dict):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         if gmm_out_dict["is_hetero"]:
@@ -62,18 +62,7 @@ def decode_alleles(gmm_out_dict,gmm_out_dict_bc):
             mediangroup1cnt = len(gmm_out_dict["group1"])
             mediangroup2 = '-'
             mediangroup2cnt = '-'
-            
-        if gmm_out_dict_bc["is_hetero"]:
-            mediangroup1_bc = find_nearest(gmm_out_dict_bc["group1"],np.median(gmm_out_dict_bc["group1"]))
-            mediangroup1cnt_bc = len(gmm_out_dict_bc["group1"])
-            mediangroup2_bc = find_nearest(gmm_out_dict_bc["group2"],np.median(gmm_out_dict_bc["group2"]))
-            mediangroup2cnt_bc = len(gmm_out_dict_bc["group2"])
-        else:
-            mediangroup1_bc = find_nearest(gmm_out_dict_bc["group1"],np.median(gmm_out_dict_bc["group1"]))
-            mediangroup1cnt_bc = len(gmm_out_dict_bc["group1"])
-            mediangroup2_bc = '-'
-            mediangroup2cnt_bc = '-'
-    return (mediangroup1,mediangroup1cnt,mediangroup2,mediangroup2cnt),(mediangroup1_bc,mediangroup1cnt_bc,mediangroup2_bc,mediangroup2cnt_bc)
+    return (mediangroup1,mediangroup1cnt,mediangroup2,mediangroup2cnt)
 
 def filter_out_complex(df,cols,STD_COEFF):
     if len(df)<=5:
@@ -105,42 +94,60 @@ def run_genotyping_overview(overview, locus_path, config, muscle_path):
         overview_path, overview = load_overview(locus_path)
 
     unfilt_values, unfilt_basecalls = [], []
+    if 'r_seq_start' in overview.columns and 'l_seq_end' in overview.columns:
+        use_basecalls = True
+    else:
+        use_basecalls = False
     for row in overview.itertuples():
         if row.saved:
             unfilt_values.append(row.results)
-            unfilt_basecalls.append(row.r_seq_start-row.l_seq_end)
+            if use_basecalls:
+                unfilt_basecalls.append(row.r_seq_start-row.l_seq_end)
     
     values = filter_out(unfilt_values, config["std_filter"])     
     gmm_out_dict = run_genotyping(values,config["min_weight"])
 
-    basecalls = filter_out(unfilt_basecalls, config["std_filter"]) 
-    gmm_out_dict_bc = run_genotyping(basecalls,config["min_weight"])  
+    if use_basecalls:
+        basecalls = filter_out(unfilt_basecalls, config["std_filter"]) 
+        gmm_out_dict_bc = run_genotyping(basecalls,config["min_weight"])  
 
-    alleles, alleles_bc = decode_alleles(gmm_out_dict,gmm_out_dict_bc) 
+    alleles = decode_alleles(gmm_out_dict)
+    if use_basecalls:
+        alleles_bc = decode_alleles(gmm_out_dict_bc) 
+
     final_preds_file = os.path.join(locus_path,"predictions","alleles.csv")
     with open(final_preds_file,"w") as f: 
         f.write("WarpSTR_allele1,WarpSTR_allele1_freq,WarpSTR_allele2,WarpSTR_allele2_freq,"\
                                                       "basecall_allele1,basecall_allele1_freq,"\
                     "basecall_allele2,basecall_allele2_freq\n")
         f.write("{a1},{a1f},{a2},{a2f},".format(a1=alleles[0],a1f=alleles[1],a2=alleles[2],a2f=alleles[3]))
-        f.write("{b1},{b1f},{b2},{b2f}".format(b1=alleles_bc[0],b1f=alleles_bc[1],\
+        if use_basecalls:
+            f.write("{b1},{b1f},{b2},{b2f}".format(b1=alleles_bc[0],b1f=alleles_bc[1],\
                                                          b2=alleles_bc[2],b2f=alleles_bc[3]))
     print(f"Allele lengths as given by WarpSTR: {alleles[0]},{alleles[2]}, frequency: {alleles[1]},{alleles[3]}")
-    print(f"Allele lengths as given by basecall: {alleles_bc[0]},{alleles_bc[2]}, frequency: {alleles_bc[1]},{alleles_bc[3]}")
+    if use_basecalls:
+        print(f"Allele lengths as given by basecall: {alleles_bc[0]},{alleles_bc[2]}, frequency: {alleles_bc[1]},{alleles_bc[3]}")
+    
     if config['visualize']:
         img_path = os.path.join(locus_path,tmpl.SUMMARY_SUBDIR,"alleles.svg")
         vals = (gmm_out_dict["group1"],gmm_out_dict["group2"])
-        bvals = (gmm_out_dict_bc["group1"],gmm_out_dict_bc["group2"])
-        plot_clustering_preds(img_path, vals, bvals, alleles, alleles_bc)
+        if use_basecalls:
+            bvals = (gmm_out_dict_bc["group1"],gmm_out_dict_bc["group2"])
+            plot_clustering_preds(img_path, vals, bvals, alleles, alleles_bc)
+        else:
+            plot_clustering_preds(img_path, vals, None, alleles, None)
 
     if config['msa']:
         path_our = os.path.join(locus_path,tmpl.PREDICTIONS_SUBDIR,"sequences")
-        path_bc = os.path.join(locus_path,tmpl.PREDICTIONS_SUBDIR,"basecalls")
         msa_out, trcalls = call_muscle(muscle_path, path_our)
-        msa_out_bc, basecalls = call_muscle(muscle_path, path_bc)
+
+        if use_basecalls:
+            path_bc = os.path.join(locus_path,tmpl.PREDICTIONS_SUBDIR,"basecalls")
+            msa_out_bc, basecalls = call_muscle(muscle_path, path_bc)
         if gmm_out_dict["is_hetero"]:
             msa_out_group1, msa_out_group2 = groups_from_pred(muscle_path, path_our, gmm_out_dict, trcalls)
-        if gmm_out_dict_bc["is_hetero"]:
+        
+        if gmm_out_dict_bc["is_hetero"] and use_basecalls:
             msa_out_group1_bc, msa_out_group2_bc = groups_from_pred(muscle_path, path_bc, gmm_out_dict_bc, basecalls)
 
 def run_genotyping_complex(locus_path, config,locus, df):
@@ -258,18 +265,27 @@ def store_fasta(filename,fasta):
                 file.write(str(seqrec)+"\n\n")
 
 def plot_clustering_preds(img_path, vals, bvals, alleles, alleles_bc):
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 7),sharey=True,gridspec_kw={'width_ratios': [1, 1]})
-    axes[0] = sns.violinplot(data=vals, orient="vertical", split=True,scale="count",whis=np.inf,inner=None, color=".8",width=0.8,scale_hue=False,ax=axes[0])
-    axes[0] = sns.stripplot(data=vals, orient="vertical",size=6,alpha=0.6,jitter=0.3,palette="bright",ax=axes[0])
-    axes[0].title.set_text('WarpSTR')
-    axes[0].set(xlabel='Alleles of length {p1},{p2}'.format(p1=alleles[0],p2=alleles[2]))
-    axes[0].set(ylabel='Filtered predictions')
-    #axes[0].set(xlabel='std: {}'+np.std(vals[1])+', std:'+np.std(vals[2]))
-    axes[1] = sns.violinplot(data=bvals, orient="vertical", split=True,scale="count",whis=np.inf,inner=None, color=".8",width=0.8,scale_hue=False,ax=axes[1])
-    axes[1] = sns.stripplot(data=bvals, orient="vertical",size=6,alpha=0.6,jitter=0.3,palette="bright",ax=axes[1])
-    axes[1].title.set_text('Basecalled sequences')
-    axes[1].set(xlabel='Alleles of length {p1},{p2}'.format(p1=alleles_bc[0],p2=alleles_bc[2]))
-    axes[1].set(ylabel='Filtered predictions')
-    #axes[1].set(xlabel='std:'+np.std(bvals[1])+', std:'+np.std(bvals[2]))
+    if bvals is not None:
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 7),sharey=True,gridspec_kw={'width_ratios': [1, 1]})
+        axes[0] = sns.violinplot(data=vals, orient="vertical", split=True,scale="count",whis=np.inf,inner=None, color=".8",width=0.8,scale_hue=False,ax=axes[0])
+        axes[0] = sns.stripplot(data=vals, orient="vertical",size=6,alpha=0.6,jitter=0.3,palette="bright",ax=axes[0])
+        axes[0].title.set_text('WarpSTR')
+        axes[0].set(xlabel='Alleles of length {p1},{p2}'.format(p1=alleles[0],p2=alleles[2]))
+        axes[0].set(ylabel='Filtered predictions')
+        axes[1] = sns.violinplot(data=bvals, orient="vertical", split=True,scale="count",whis=np.inf,inner=None, color=".8",width=0.8,scale_hue=False,ax=axes[1])
+        axes[1] = sns.stripplot(data=bvals, orient="vertical",size=6,alpha=0.6,jitter=0.3,palette="bright",ax=axes[1])
+        axes[1].title.set_text('Basecalled sequences')
+        axes[1].set(xlabel='Alleles of length {p1},{p2}'.format(p1=alleles_bc[0],p2=alleles_bc[2]))
+        axes[1].set(ylabel='Filtered predictions')
+        plt.savefig(img_path,bbox_inches='tight',format="svg")
+        plt.close()
+        return
+    
+    fig = plt.figure(figsize=(16, 7))
+    fig.suptitle('WarpSTR', fontsize=20)
+    plt.xlabel('Alleles of length {p1},{p2}'.format(p1=alleles[0],p2=alleles[2]), fontsize=18)
+    plt.ylabel('Filtered predictions', fontsize=16)
+    sns.violinplot(data=vals, orient="vertical", split=True,scale="count",whis=np.inf,inner=None, color=".8",width=0.8,scale_hue=False)
+    sns.stripplot(data=vals, orient="vertical",size=6,alpha=0.6,jitter=0.3,palette="bright")
     plt.savefig(img_path,bbox_inches='tight',format="svg")
     plt.close()
