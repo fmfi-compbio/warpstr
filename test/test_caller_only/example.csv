@@ -1,0 +1,11 @@
+fast5_path,locus,read_name,reverse,l_start_raw,r_end_raw
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,0592ed32-bd41-4b30-9c53-95805a2d3d8d,FALSE,62470,64940
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,36e03b36-32c4-461a-a18b-0736fd79c4d3,TRUE,60815,64060
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,3e666654-e7cb-4a0c-8abf-3dd66539dfaa,TRUE,43050,45580
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,8f757219-ba5d-413c-ae27-f36c5c1804ec,FALSE,23545,27245
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,9cfa3ca7-14dc-49a5-8761-458ab6567852,TRUE,43335,46035
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,a239d0f4-8330-412d-b66b-e8d9e050bab7,FALSE,279470,282080
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,b6d71b08-addb-4144-8021-3f18ead08afa,FALSE,5420,7900
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,bbbd03d2-0044-45e3-a6ea-290646eaacaa,FALSE,69175,71860
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,c6a38e22-ea6e-449e-b464-3c0110c0a19f,TRUE,92265,94645
+test/test_input/test_run1/fast5s/batch_0.fast5,Human_STR_1108232,deae86c7-c5b8-4d4b-b977-81398de53b79,TRUE,18555,20825

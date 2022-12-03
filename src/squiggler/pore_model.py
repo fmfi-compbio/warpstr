@@ -1,9 +1,11 @@
 import os
+
 from pandas import read_csv
+
 from src.input_handler.fast5 import normalize_signal_mad
 
 
-def load_pore_model(pore_model_path):
+def load_pore_model(pore_model_path: str):
     """
     Reads config info from the given yaml config file
     :param pore_model_path: str - path to pore model file
@@ -12,7 +14,7 @@ def load_pore_model(pore_model_path):
     """
     if not os.path.exists(pore_model_path):
         raise FileNotFoundError(
-            "Not found pore model table at path", pore_model_path)
+            'Not found pore model table at path', pore_model_path)
 
     pore_model = read_csv(pore_model_path, sep='\t', header=0)
 

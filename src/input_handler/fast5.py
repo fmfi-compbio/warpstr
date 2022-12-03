@@ -8,7 +8,7 @@ class Fast5:
     Class for fast5 files and methods for processing them
     """
 
-    def __init__(self, fast5path, config_input=None,get_data_only=False):
+    def __init__(self, fast5path, config_input=None, get_data_only=False):
         self.handle = h5py.File(fast5path, 'r')
         self.data = None
         self.fasta = None
@@ -21,18 +21,17 @@ class Fast5:
             self.normalization = config_input['normalization']
             self.spike_removal = config_input['spike_removal']
         else:
-            self.normalization = "None"
-            self.spike_removal = "None"
-        if not(get_data_only):
-            self.use_basecall(config_input)
-        
-    def use_basecall(self, config_input):
-        for j in [i for i in self.handle['Analyses'].keys() if i.startswith("Basecall")]:
+            self.normalization = 'None'
+            self.spike_removal = 'None'
+        if not (get_data_only):
+            self.use_basecall()
+
+    def use_basecall(self):
+        for j in [i for i in self.handle['Analyses'].keys() if i.startswith('Basecall')]:
             if 'BaseCalled_template' in self.handle['Analyses'][j].keys():
                 self.tag = j[-3:]
-        self.bc_tag = "Basecall_1D_"+self.tag
-        self.seg_tag = "Segmentation_"+self.tag
-
+        self.bc_tag = 'Basecall_1D_'+self.tag
+        self.seg_tag = 'Segmentation_'+self.tag
 
     def get_tr_extract_reqs(self):
         """
@@ -73,7 +72,7 @@ class Fast5:
         """
         Normalizes raw signal data
         """
-        if self.normalization == "MAD":
+        if self.normalization == 'MAD':
             return normalize_signal_mad(self.data)
         return self.data
 
@@ -81,11 +80,11 @@ class Fast5:
         """
         Removes outliers in the fast5 data
         """
-        if self.spike_removal == "median3":
+        if self.spike_removal == 'median3':
             self.data = medfilt(self.data, 3)
-        elif self.spike_removal == "median5":
+        elif self.spike_removal == 'median5':
             self.data = medfilt(self.data, 5)
-        elif self.spike_removal == "Brute":
+        elif self.spike_removal == 'Brute':
             self.data = brute_remove(self.data)
 
     def load_fasta(self):
@@ -94,9 +93,10 @@ class Fast5:
         """
         if self.fasta is None:
             try:
-                fasta = self.handle['Analyses'][self.bc_tag]['BaseCalled_template']['Fastq'][()].decode('ascii').split('\n')[1]
+                fasta = self.handle['Analyses'][self.bc_tag]['BaseCalled_template']['Fastq'][()].decode('ascii').split('\n')[
+                    1]
             except KeyError as e:
-                print('Could not acquire FASTA sequence from .fast5 file')
+                print(f'Could not acquire FASTA sequence from .fast5 file due to error={e}')
             else:
                 return fasta
         return self.fasta

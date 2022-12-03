@@ -1,9 +1,11 @@
 import os
-import src.templates as tmpl
-from typing import Dict
 from subprocess import call
+from typing import Dict
 
-def guppy_annotate(script_path:str, locus_path: str, threads: int, guppy:Dict[str,str]):
+import src.templates as tmpl
+
+
+def guppy_annotate(script_path: str, locus_path: str, threads: int, guppy: Dict[str, str]):
     """Call script running Guppy annotate for all fast5 in locus path
 
     Args:
@@ -17,23 +19,23 @@ def guppy_annotate(script_path:str, locus_path: str, threads: int, guppy:Dict[st
         ValueError: Calling Guppy exited with failure status using subprocess
         OSError: Calling subprocess failed with OSError due to I/O problems
     """
-    guppy_wrapper = os.path.join(script_path, "src","guppy_annotate","wrapper.sh")
+    guppy_wrapper = os.path.join(script_path, 'src', 'guppy_annotate', 'wrapper.sh')
     fast5_out_path = os.path.join(locus_path, tmpl.FAST5_SUBDIR)
     if os.path.exists(guppy['path']) is False:
         raise FileNotFoundError(f'Could not load Guppy from {guppy["path"]}')
 
     command = [
         guppy_wrapper,
-        "-g",guppy['path'],
-        "-r",fast5_out_path,
-        "-f",guppy['flowcell'],
-        "-k",guppy['kit'],
-        "-a",tmpl.ANNOT_SUBDIR,
-        "-t",str(threads)
-        ]
+        '-g', guppy['path'],
+        '-r', fast5_out_path,
+        '-f', guppy['flowcell'],
+        '-k', guppy['kit'],
+        '-a', tmpl.ANNOT_SUBDIR,
+        '-t', str(threads)
+    ]
     try:
         ret_call = call(command)
         if ret_call < 0:
-            raise ValueError(f"Execution of guppy failed in locus={locus_path} by return signal {-ret_call}")
+            raise ValueError(f'Execution of guppy failed in locus={locus_path} by return signal {-ret_call}')
     except OSError as e:
-        raise OSError(f"Execution of guppy failed in locus={locus_path} with err={e}")
+        raise OSError(f'Execution of guppy failed in locus={locus_path} with err={e}')

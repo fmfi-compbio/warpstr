@@ -1,6 +1,8 @@
 import os
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+
 import src.templates as tmpl
 
 
@@ -11,22 +13,22 @@ def store_collapsed(results, units, rep_units, reverse_lst, locus_path):
     preds = {}
     for idx, i in enumerate(units):
         if len(results[0][idx]) > 1:
-            main = "main_"+rep_units[idx][0]
+            main = 'main_'+rep_units[idx][0]
             preds[main] = np.array([np.sum(j[idx]) for j in results])
             for idx2, k in enumerate(rep_units[idx][1:]):
-                inter = "inter_"+k[len(rep_units[idx][0]):]
+                inter = 'inter_'+k[len(rep_units[idx][0]):]
                 preds[inter] = np.array([j[idx][idx2+1] for j in results])
         else:
-            name = i.strip("(").strip(")")
+            name = i.strip('(').strip(')')
             preds[name] = np.array([j[idx][0] for j in results])
-    preds["reverse"] = reverse_lst
+    preds['reverse'] = reverse_lst
     df_preds = pd.DataFrame.from_dict(preds)
 
     out_path = os.path.join(
         locus_path, tmpl.PREDICTIONS_SUBDIR, tmpl.COMPLEX_SUBDIR)
     if os.path.isdir(out_path) is False:
         os.mkdir(out_path)
-    df_preds.to_csv(os.path.join(out_path, "complex_repeat_units.csv"))
+    df_preds.to_csv(os.path.join(out_path, 'complex_repeat_units.csv'))
     return df_preds
 
 
@@ -39,9 +41,8 @@ def load_overview(locus_path):
         df_overview = pd.read_csv(overview_path)
         df_overview.set_index('read_name', inplace=True)
         df_overview.columns = df_overview.columns.map(str)
-    except FileNotFoundError as e:
-        print(f'Not found the overview file {overview_path} - Please check the "output" in config')
-        raise
+    except FileNotFoundError:
+        raise FileNotFoundError(f'Not found the overview file {overview_path} - Please check the "output" in config')
     return overview_path, df_overview
 
 
@@ -84,41 +85,41 @@ def write_results_to_fasta(locus_path, fasta_lst):
     Stores results as FASTA sequences
     """
     fasta_out = os.path.join(
-        locus_path, tmpl.PREDICTIONS_SUBDIR, "sequences", "all.fasta")
+        locus_path, tmpl.PREDICTIONS_SUBDIR, 'sequences', 'all.fasta')
     fasta_out_template = os.path.join(
-        locus_path, tmpl.PREDICTIONS_SUBDIR, "sequences", "sequences_template.fasta")
+        locus_path, tmpl.PREDICTIONS_SUBDIR, 'sequences', 'sequences_template.fasta')
     fasta_out_reverse = os.path.join(
-        locus_path, tmpl.PREDICTIONS_SUBDIR, "sequences", "sequences_reverse.fasta")
-    with open(fasta_out, "w") as file:
+        locus_path, tmpl.PREDICTIONS_SUBDIR, 'sequences', 'sequences_reverse.fasta')
+    with open(fasta_out, 'w') as file:
         for fastaid, fastaseq, rev in fasta_lst:
-            file.write(">"+fastaid+"\n")
-            file.write(fastaseq+"\n")
-            file.write("\n")
-    with open(fasta_out_template, "w") as file:
+            file.write('>'+fastaid+'\n')
+            file.write(fastaseq+'\n')
+            file.write('\n')
+    with open(fasta_out_template, 'w') as file:
         for fastaid, fastaseq, rev in fasta_lst:
             if rev is False:
-                file.write(">"+fastaid+"\n")
-                file.write(fastaseq+"\n")
-                file.write("\n")
-    with open(fasta_out_reverse, "w") as file:
+                file.write('>'+fastaid+'\n')
+                file.write(fastaseq+'\n')
+                file.write('\n')
+    with open(fasta_out_reverse, 'w') as file:
         for fastaid, fastaseq, rev in fasta_lst:
             if rev:
-                file.write(">"+fastaid+"\n")
-                file.write(fastaseq+"\n")
-                file.write("\n")
+                file.write('>'+fastaid+'\n')
+                file.write(fastaseq+'\n')
+                file.write('\n')
 
 
 def save_overview(overview_path, df_overview, newcol, dbg1, dbg2, dbg3):
     """
     Save Warping results in overview
     """
-    prev_res = [c for c in df_overview.columns if c.startswith("result")]
+    prev_res = [c for c in df_overview.columns if c.startswith('result')]
     df_overview.drop(columns=prev_res, inplace=True)
 
-    df_overview["results"] = newcol
-    df_overview["orig"] = dbg1
-    df_overview["dtw_cost1"] = dbg2
-    df_overview["dtw_cost2"] = dbg3
+    df_overview['results'] = newcol
+    df_overview['orig'] = dbg1
+    df_overview['dtw_cost1'] = dbg2
+    df_overview['dtw_cost2'] = dbg3
 
     df_overview.to_csv(overview_path)
     print(f' Results stored in overview file {overview_path}')

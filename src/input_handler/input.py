@@ -1,6 +1,7 @@
 import argparse
 import os
-import sys
+import pathlib
+
 import yaml
 
 
@@ -9,27 +10,22 @@ def load_args(script_path: str):
     Parses input args and returns parsed config
     """
 
-    try:
-        parser = argparse.ArgumentParser(description="WarpSTR")
-        parser.add_argument('config', metavar='Config', type=is_valid_file, help='config file in .yaml')
-        args = parser.parse_args()
-    except argparse.ArgumentTypeError:
-        print("Error when parsing input")
-        sys.exit(-1)
-
+    parser = argparse.ArgumentParser(description='WarpSTR')
+    parser.add_argument('config', metavar='Config', type=is_valid_file, help='config file in .yaml')
+    args = parser.parse_args()
     config = load_yaml(args.config)
     if config is None:
         raise ValueError(f'Error when loading config file from {args.config}')
-    
-    defaults_path = os.path.join(script_path,'src','default.yaml')
-    defaults = load_yaml(os.path.join(script_path,'src','default.yaml'))
+
+    defaults_path = os.path.join(script_path, 'src', 'default.yaml')
+    defaults = load_yaml(os.path.join(script_path, 'src', 'default.yaml'))
     if defaults is None:
         raise ValueError(f'Error when loading config file from {defaults_path}')
 
     add_defaults(config, defaults)
     validate_config(config)
 
-    return config, args.config
+    return config
 
 
 def validate_config(config):
@@ -104,26 +100,25 @@ def add_defaults(config, default):
             # required - check if it is available
             if key not in config:
                 raise KeyError('Required argument not available - %s' % key)
-            if config[key] is None or config[key].strip() == "":
+            if config[key] is None or config[key].strip() == '':
                 raise KeyError('Required argument is empty - %s' % key)
         else:
             # add it
             if key not in config:
                 config[key] = default[key]
 
-def is_valid_file(arg):
+
+def is_valid_file(arg: str) -> str:
     """
     Checks if input config file exists
     :return: arg - path to config file
     """
-
     if not os.path.exists(arg):
-        err_msg = (f"The file {arg} does not exist!")
-        raise argparse.ArgumentTypeError(err_msg)
+        raise argparse.ArgumentTypeError(f'The config file {arg} does not exist!')
     return arg
 
 
-def load_yaml(yaml_path):
+def load_yaml(yaml_path: str):
     """
     Reads config info from the given yaml config file
     :param yaml_path: str - path to yaml parameters file
@@ -135,10 +130,12 @@ def load_yaml(yaml_path):
         with open(yaml_path, 'r') as stream:
             loaded_yaml = yaml.load(stream, Loader=yaml.FullLoader)
     except yaml.YAMLError as exc:
-        print(f'Incorrect YAML format in config path {yaml_path}')
-        raise
+        raise ValueError(f'Incorrect YAML format in config path {yaml_path},err={exc}')
     except IOError as err:
-        print(f'IOError when processing config path {yaml_path}')
-        raise
+        raise IOError(f'IOError when processing config path {yaml_path}, err={err}')
 
     return loaded_yaml
+
+
+ROOT_DIR_PATH = pathlib.Path().resolve()
+config = load_args(ROOT_DIR_PATH)

@@ -1,23 +1,27 @@
-import pandas as pd
-import numpy as np
 import os
+import sys
+from multiprocessing import Pool
+from typing import Tuple
+
+import numpy as np
+import pandas as pd
 from Bio import pairwise2
+from mappy import revcomp
+
 import src.templates as tmpl
 from src.input_handler.fast5 import Fast5
-from multiprocessing import Pool
-import sys
-from mappy import revcomp
+
 
 def save_alignment(row, alignments, align_path, config):
     """
     Write alignment into file using sample for discrimination
     :param row: Path to the extracted data for selected locus
-    :param alignments: alignments to be written, list containing usually formatted alignment and string with score 
+    :param alignments: alignments to be written, list containing usually formatted alignment and string with score
     :param align_path: path where alignment will be appended
     """
     m_path = os.path.join(align_path, row.sample+tmpl.ALIGNMENT_SUFFIX_FILE)
     if os.path.exists(m_path) is False:
-        with open(m_path, "w") as f:
+        with open(m_path, 'w') as f:
             f.write(tmpl.ALIGNMENT_SEPARATOR)
             f.write(tmpl.FASTA_HEAD.format(match=config['match_score'], mismatch=config['mismatch_score'],
                                            gap_open=config['gap_open_score'], gap_extend=config['gap_extend_score'],
@@ -30,7 +34,7 @@ def save_alignment(row, alignments, align_path, config):
                     score=a[0], text=a[1], equal=a[2], query=a[3]))
             f.write(tmpl.ALIGNMENT_SEPARATOR)
     else:
-        with open(m_path, "a") as f:
+        with open(m_path, 'a') as f:
             f.write(tmpl.FASTA_READNAME_ID.format(
                 read_id=row.Index, reverse=str(row.reverse)))
             for a in alignments:
@@ -39,7 +43,7 @@ def save_alignment(row, alignments, align_path, config):
             f.write(tmpl.ALIGNMENT_SEPARATOR)
 
 
-def load_flanks(locus_path):
+def load_flanks(locus_path: str):
     """
     Function loading template and reverse flanks
     :param locus_path: Path to the extracted data for selected locus
@@ -47,45 +51,33 @@ def load_flanks(locus_path):
     :returns (lfr,rfr): left and right flanking reverse sequences
     """
     path = os.path.join(locus_path, tmpl.LOCUS_INFO_SUBDIR, tmpl.LOCUS_FLANKS)
-    lft, rft, lfr, rfr = "", "", "", ""
+    lft, rft, lfr, rfr = '', '', '', ''
 
-    if os.path.exists(path):
-        with open(path, "r") as f:
-            colnames = f.readline().split(',')
-            seqid = 0
-            for idx, i in enumerate(colnames):
-                if i.rstrip() == "sequence":
-                    seqid = idx
+    if not os.path.exists(path):
+        raise FileNotFoundError(f'File with flanks not found in path={path}')
 
-            lft = f.readline().split(',')[seqid].rstrip()
-            rft = f.readline().split(',')[seqid].rstrip()
-            lfr = f.readline().split(',')[seqid].rstrip()
-            rfr = f.readline().split(',')[seqid].rstrip()
+    with open(path, 'r') as f:
+        colnames = f.readline().split(',')
+        seqid = 0
+        for idx, i in enumerate(colnames):
+            if i.rstrip() == 'sequence':
+                seqid = idx
 
-    else:
-        err_msg = "File with flanks not found in {path}".format(path=path)
-        handle_msg_err(err_msg)
-        return False
-
-    if check_flanks((lft, rft), (lfr, rfr)):
-        err_msg = "Empty flanks found in {path}".format(path=locus_path)
-        handle_msg_err(err_msg)
-        return False
+        lft = f.readline().split(',')[seqid].rstrip()
+        rft = f.readline().split(',')[seqid].rstrip()
+        lfr = f.readline().split(',')[seqid].rstrip()
+        rfr = f.readline().split(',')[seqid].rstrip()
 
     return ((lft, rft), (lfr, rfr))
 
 
-def handle_msg_err(err_msg):
-    print(tmpl.ERR_MSG.format(lvl="3_TREX", msg=err_msg), file=sys.stderr)
-
-
 def handle_msg_dbg(dbg_msg):
-    print(tmpl.DBG_MSG.format(lvl="3_TREX", msg=dbg_msg), file=sys.stderr)
+    print(tmpl.DBG_MSG.format(lvl='3_TREX', msg=dbg_msg), file=sys.stderr)
 
 
 def transform_moves(moves):
     """
-    Preparation of Move table from guppy for easier indexing. 
+    Preparation of Move table from guppy for easier indexing.
     Guppy Move table contains info whether current window has the same context or not
     This information is stored as zeros and ones for easy compression
     However for easier indexing we transform it into table of contexts
@@ -147,9 +139,9 @@ def find_sequence(seq1, seq2, match_score, mis_score, gap_open, gap_ext):
     :return (score_string,ref,mapping,query): calculated alignments of flanks with basecalled read
     """
 
-    # get the best alignment using local alignment from pairwise lib    
+    # get the best alignment using local alignment from pairwise lib
     al1, al2, score, start, end = pairwise2.align.localms(
-        seq1, seq2, match_score, mis_score, gap_open, gap_ext,one_alignment_only=True)[0]
+        seq1, seq2, match_score, mis_score, gap_open, gap_ext, one_alignment_only=True)[0]
 
     # decode the start and end positions of the alignment so alignment can be written to file later
     # this also handles cases when alignment starts or ends earlier
@@ -162,20 +154,20 @@ def find_sequence(seq1, seq2, match_score, mis_score, gap_open, gap_ext):
     # prepare alignment as list of strings
     ref = al1[real_start:end]
     query = al2[real_start:end]
-    mapping = ""
+    mapping = ''
     identity = 0
     for i, j in zip(ref, query):
         if i == j:
             mapping += tmpl.ALIGNMENT_MATCH_CHAR
-            identity += 1 
+            identity += 1
         else:
             mapping += tmpl.ALIGNMENT_MISMATCH_CHAR
     # Save also score into the alignment
     diff = (len(seq2)-(len(query)-nums_gaps2))*gap_ext
     score = score + diff
-    score_string = "Score: "+str(score)+" Identity: "+str(identity)+"/"+str(len(ref))
+    score_string = 'Score: '+str(score)+' Identity: '+str(identity)+'/'+str(len(ref))
     identity = identity/(len(ref))
-    return (score,identity), real_start, end, (score_string, ref, mapping, query)
+    return (score, identity), real_start, end, (score_string, ref, mapping, query)
 
 
 def align_seq(read, flanks, config, return_alignment=False):
@@ -192,13 +184,13 @@ def align_seq(read, flanks, config, return_alignment=False):
     mis = int(config['mismatch_score'])
     gap_o = int(config['gap_open_score'])
     gap_e = int(config['gap_extend_score'])
-    
+
     # align basecalled sequence with flanks
     score_l, start_l, end_l, alignment_l = find_sequence(
         read, flanks[0], match, mis, gap_o, gap_e)
-    
-    if (end_l+len(flanks[1]))>len(read):
-        score_r, start_r, end_r, alignment_r = (-1,-1), -1, -1,("not found", "-", "-", "-")
+
+    if (end_l+len(flanks[1])) > len(read):
+        score_r, start_r, end_r, alignment_r = (-1, -1), -1, -1, ('not found', '-', '-', '-')
     else:
         score_r, start_r, end_r, alignment_r = find_sequence(
             read[end_l:], flanks[1], match, mis, gap_o, gap_e)
@@ -221,9 +213,9 @@ def extract_tr(overview_row):
     approx_location = overview_row[3]
 
     fast5path = os.path.join(curr_locus_path, tmpl.FAST5_SUBDIR, str(
-        runid), tmpl.ANNOT_SUBDIR, readname+".fast5")
+        runid), tmpl.ANNOT_SUBDIR, readname+'.fast5')
 
-    dbg_msg = "processing {read}".format(read=readname)
+    dbg_msg = 'processing {read}'.format(read=readname)
     handle_msg_dbg(dbg_msg)
 
     # decode flanks according to strand
@@ -234,9 +226,7 @@ def extract_tr(overview_row):
         fast5 = Fast5(fast5path)
         fast5.get_tr_extract_reqs()
     except Exception as e:
-        err_msg = "{err} when loading {path}".format(err=e, path=fast5path)
-        handle_msg_err(err_msg)
-        return False
+        raise ValueError('Error={err} when loading fast5 from {path}'.format(err=e, path=fast5path))
 
     if approx_location > len(fast5.fasta):
         approx_location = len(fast5.fasta)
@@ -246,14 +236,14 @@ def extract_tr(overview_row):
     start = max(int(approx_location-0.05*len(fast5.fasta)-5000), 0)
     end = min(int(approx_location+0.05*len(fast5.fasta)+5000), len(fast5.fasta)-1)
 
-    dbg_msg = "aligning flank with seq[{start}:{end}] of total {ln} in {read}".format(
+    dbg_msg = 'aligning flank with seq[{start}:{end}] of total {ln} in {read}'.format(
         start=start, end=end, ln=len(fast5.fasta), read=readname)
     handle_msg_dbg(dbg_msg)
-    
+
     try:
         ref_text = fast5.fasta[start:end]
     except Exception as e:
-        print("ERROR",str(e))
+        print('ERROR', str(e))
 
     # align flanks to the read
     (l_begin_seq, l_end_seq), (r_begin_seq, r_end_seq), alignments = align_seq(
@@ -267,17 +257,17 @@ def extract_tr(overview_row):
     if r_end_seq != -1:
         r_end_seq += start
 
-    if l_begin_seq==-1 or l_end_seq==-1 or r_begin_seq==-1 or r_end_seq==-1:
+    if l_begin_seq == -1 or l_end_seq == -1 or r_begin_seq == -1 or r_end_seq == -1:
         l_start, l_end = -1, -1
         r_start, r_end = -1, -1
-        seq = ""
+        seq = ''
     else:
         # prepare Move table from guppy for easier indexing
-         # index Move table using aligned flank sequences
-        dbg_msg = "delineating TR [{b1},{e1}],[{b2},{e2}] for {read}".format(
+        # index Move table using aligned flank sequences
+        dbg_msg = 'delineating TR [{b1},{e1}],[{b2},{e2}] for {read}'.format(
             b1=l_begin_seq, e1=l_end_seq, b2=r_begin_seq, e2=r_end_seq, read=readname)
         handle_msg_dbg(dbg_msg)
-    
+
         moves_r = transform_moves(fast5.moves)
 
         l_start, l_end = extract_from_moves(
@@ -289,47 +279,27 @@ def extract_tr(overview_row):
         if reverse:
             seq = revcomp(seq)
 
-    dbg_msg = "finished TR extraction for {read}".format(read=readname)
+    dbg_msg = 'finished TR extraction for {read}'.format(read=readname)
     handle_msg_dbg(dbg_msg)
 
-    return {"read_id": readname,
-            "lflank": (l_start, l_end),
-            "rflank": (r_start, r_end),
-            "align_res": ((l_begin_seq, l_end_seq), (r_begin_seq, r_end_seq), alignments),
-            "sequence":seq,
-            "reverse":reverse}
+    return {'read_id': readname,
+            'lflank': (l_start, l_end),
+            'rflank': (r_start, r_end),
+            'align_res': ((l_begin_seq, l_end_seq), (r_begin_seq, r_end_seq), alignments),
+            'sequence': seq,
+            'reverse': reverse}
 
 
-def check_flanks(flanks_tem, flanks_rev):
-    """
-    Check if flanks were loaded properly.
-    :param flanks_tem: flank sequences for template strand
-    :param flanks_rev: flank sequences for reverse strand
-    :return False if one of flank sequences is empty
-    """
-    for f in flanks_tem:
-        if len(f) == 0:
-            return True
-    for f in flanks_rev:
-        if len(f) == 0:
-            return True
-    return False
+def load_overview_df(overview_path: str):
+    df = pd.read_csv(overview_path)
+    if not df:
+        raise RuntimeError(f'Loaded empty overview file from path={overview_path}')
+    df.set_index('read_name', inplace=True)
+    df.columns = df.columns.map(str)
+    return df
 
 
-def load_overview_df(overview_path):
-    try:
-        df = pd.read_csv(overview_path)
-        df.set_index('read_name', inplace=True)
-        df.columns = df.columns.map(str)
-        return df
-    except Exception as e:
-        err_msg = "{err} when loading overview file in {path}".format(
-            err=e, path=overview_path)
-        handle_msg_err(err_msg)
-        return None
-
-
-def extract_tr_all(locus_path, config_align, threads):
+def extract_tr_all(locus_path: str, config_align, threads: int):
     """
     Extraction of tandem repeat regions using flanks of the locus.
     In the overview file of the locus following is stored:
@@ -360,18 +330,14 @@ def extract_tr_all(locus_path, config_align, threads):
 
     # load existing overview file where is basic info about reads
     df = load_overview_df(overview_path)
-    if df is None:
-        err_msg = "No overview file found in {path}".format(path=overview_path)
-        handle_msg_err(err_msg)
-        return False
 
     # prepare reads into list for parallelization
     read_list = []
     for row in df.itertuples():
         read_list.append((row.Index, row.run_id, row.reverse, row.sam_dist))
-    
+
     # run TR extraction
-    dbg_msg = "Extracting TRs - running with {thr} threads".format(thr=threads)
+    dbg_msg = 'Extracting TRs - running with {thr} threads'.format(thr=threads)
     handle_msg_dbg(dbg_msg)
     if threads > 1:
         with Pool(threads) as p:
@@ -388,14 +354,7 @@ def extract_tr_all(locus_path, config_align, threads):
                 new_col.append(process_row(res))
 
                 # store alignment result as well
-                try:
-                    save_alignment(row, res['align_res']
-                                   [2], align_path, config_align)
-                except Exception as e:
-                    err_msg = "{err} - when saving alignment at {path} for read {read}".format(
-                        err=e, path=align_path, read=row.Index)
-                    handle_msg_err(err_msg)
-                    return False
+                save_alignment(row, res['align_res'][2], align_path, config_align)
 
     # store positions of extracted tandem repeat regions in the overview file
     new_col = np.array(new_col).reshape((-1, len(new_col[0]))).T
@@ -409,35 +368,31 @@ def extract_tr_all(locus_path, config_align, threads):
                    r_seq_start=new_col[7],
                    r_seq_end=new_col[8])
 
-    try:
-        df.to_csv(os.path.join(overview_path))
-    except Exception as e:
-        err_msg = "{err} - when storing extracted TRs in {path}".format(
-            err=e, path=overview_path)
-        handle_msg_err(err_msg)
-        return False
+    df.to_csv(os.path.join(overview_path))
 
-    filename = os.path.join(locus_path,tmpl.PREDICTIONS_SUBDIR,"basecalls","all.fasta")
+    filename = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, 'basecalls', 'all.fasta')
     store_fasta(filename, results)
-    
-    filename = os.path.join(locus_path,tmpl.PREDICTIONS_SUBDIR,"basecalls","basecalls_reverse.fasta")
-    results_rev = [res for res in results if res["reverse"]]
+
+    filename = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, 'basecalls', 'basecalls_reverse.fasta')
+    results_rev = [res for res in results if res['reverse']]
     store_fasta(filename, results_rev)
 
-    filename = os.path.join(locus_path,tmpl.PREDICTIONS_SUBDIR,"basecalls","basecalls_template.fasta")
-    results_temp = [res for res in results if res["reverse"] is False]
+    filename = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, 'basecalls', 'basecalls_template.fasta')
+    results_temp = [res for res in results if res['reverse'] is False]
     store_fasta(filename, results_temp)
 
     return True
 
-def store_fasta(filename,fasta):
-    with open (filename,"w") as file:
-        for i in fasta:
-            if len(str(i["sequence"]))>0:
-                file.write(">"+i["read_id"]+"\n")
-                file.write(str(i["sequence"])+"\n\n")
 
-def valid_region(start, end):
+def store_fasta(filename: str, fasta):
+    with open(filename, 'w') as file:
+        for i in fasta:
+            if len(str(i['sequence'])) > 0:
+                file.write('>'+i['read_id']+'\n')
+                file.write(str(i['sequence'])+'\n\n')
+
+
+def valid_region(start: int, end: int) -> bool:
     """
     Checks if input region is valid
     :param start: start of the region
@@ -451,7 +406,7 @@ def valid_region(start, end):
         return True
 
 
-def is_valid(left, right, l_start, l_end, r_start, r_end):
+def is_valid(left: Tuple[int, int], right: Tuple[int, int], l_start: int, l_end: int, r_start: int, r_end: int):
     """
     Checks if TR region extracted is valid
     :param left: tuple of start and end coordinate of left flank seq

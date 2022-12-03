@@ -1,8 +1,10 @@
 import os
+
 import numpy as np
 from matplotlib import pyplot as plt
 
 import src.templates as tmpl
+
 from .dna_sequence import get_sequences
 from .pore_model import load_pore_model
 
@@ -12,11 +14,11 @@ class Squiggler:
     This class is for generators of expected signals
     """
 
-    def __init__(self, pore_model_path, reference_path):
+    def __init__(self, pore_model_path: str, reference_path: str):
         self.pore_model, self.kmersize = load_pore_model(pore_model_path)
         self.ref_path = reference_path
 
-    def generate_signal(self, sequence):
+    def generate_signal(self, sequence: str):
         """
         Generates expected signal for input sequence
         :param sequence: string for which to generate signal values
@@ -30,7 +32,7 @@ class Squiggler:
 
         return np.array(gen_sig)
 
-    def process_locus(self, locus_path, flank_length, coord):
+    def process_locus(self, locus_path: str, flank_length: int, coord: str):
         """
         Process locus
         """
@@ -43,14 +45,14 @@ class Squiggler:
         self.save_gen_signals(
             output_path, (lf_t, rf_t, lf_r, rf_r, tmpp, revp))
 
-    def save_gen_signals(self, output_path, sequences):
+    def save_gen_signals(self, output_path: str, sequences):
         """
         Store expected signals
         """
         gen_signals = []
         for idx, i in enumerate(tmpl.LOCUS_NAMES):
             result = self.generate_signal(sequences[idx])
-            saving_path = os.path.join(output_path, i+".txt")
+            saving_path = os.path.join(output_path, i+'.txt')
             np.savetxt(saving_path, result, fmt='%f')
             gen_signals.append(result)
 
@@ -60,7 +62,7 @@ class Squiggler:
         """
         Store all Squiggler generated images
         """
-        out_path = os.path.join(upper_path, name+".png")
+        out_path = os.path.join(upper_path, name+'.png')
         total_images = len(data)
         fig, axs = plt.subplots(total_images, figsize=(
             16, 3*total_images), sharey=True)
@@ -77,7 +79,7 @@ class Squiggler:
         Store all Squiggler used sequences
         """
         fasta_path = os.path.join(output_path, tmpl.LOCUS_FLANKS)
-        with open(fasta_path, "w") as file:
-            file.write("type,sequence\n")
+        with open(fasta_path, 'w') as file:
+            file.write('type,sequence\n')
             for idx, i in enumerate(tmpl.LOCUS_NAMES):
-                file.write(i+","+sequences[idx]+"\n")
+                file.write(i+','+sequences[idx]+'\n')
