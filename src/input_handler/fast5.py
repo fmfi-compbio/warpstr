@@ -2,27 +2,23 @@ import h5py
 import numpy as np
 from scipy.signal import medfilt
 
+from src.input_handler.input import caller_config
+
 
 class Fast5:
     """
     Class for fast5 files and methods for processing them
     """
+    block_size: int
+    strand_start: int
+    fasta: str
+    moves: np.ndarray
 
-    def __init__(self, fast5path, config_input=None, get_data_only=False):
+    def __init__(self, fast5path: str, get_data_only: bool = False):
         self.handle = h5py.File(fast5path, 'r')
         self.data = None
-        self.fasta = None
-        self.moves = None
-        self.block_size = None
-        self.strand_start = None
         self.norm = None
         self.tag = None
-        if config_input is not None:
-            self.normalization = config_input['normalization']
-            self.spike_removal = config_input['spike_removal']
-        else:
-            self.normalization = 'None'
-            self.spike_removal = 'None'
         if not (get_data_only):
             self.use_basecall()
 
@@ -54,7 +50,7 @@ class Fast5:
             self.data = np.asarray(
                 self.handle['Raw']['Reads'][rname]['Signal'])
             self.remove_spikes()
-            self.norm = self.normalize()
+            self.norm = normalize_signal_mad(self.data)
         if position is not None:
             return self.norm[position[0]:position[1]+1]
         return self.norm
@@ -68,23 +64,15 @@ class Fast5:
             return self.fasta[position[0]:position[1]]
         return self.fasta
 
-    def normalize(self):
-        """
-        Normalizes raw signal data
-        """
-        if self.normalization == 'MAD':
-            return normalize_signal_mad(self.data)
-        return self.data
-
     def remove_spikes(self):
         """
         Removes outliers in the fast5 data
         """
-        if self.spike_removal == 'median3':
+        if caller_config.spike_removal == 'median3':
             self.data = medfilt(self.data, 3)
-        elif self.spike_removal == 'median5':
+        elif caller_config.spike_removal == 'median5':
             self.data = medfilt(self.data, 5)
-        elif self.spike_removal == 'Brute':
+        elif caller_config.spike_removal == 'Brute':
             self.data = brute_remove(self.data)
 
     def load_fasta(self):

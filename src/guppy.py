@@ -1,11 +1,11 @@
 import os
 from subprocess import call
-from typing import Dict
 
 import src.templates as tmpl
+from src.input_handler.input import guppy_config
 
 
-def guppy_annotate(script_path: str, locus_path: str, threads: int, guppy: Dict[str, str]):
+def guppy_annotate(script_path: str, locus_path: str, threads: int):
     """Call script running Guppy annotate for all fast5 in locus path
 
     Args:
@@ -21,15 +21,18 @@ def guppy_annotate(script_path: str, locus_path: str, threads: int, guppy: Dict[
     """
     guppy_wrapper = os.path.join(script_path, 'src', 'guppy_annotate', 'wrapper.sh')
     fast5_out_path = os.path.join(locus_path, tmpl.FAST5_SUBDIR)
-    if os.path.exists(guppy['path']) is False:
-        raise FileNotFoundError(f'Could not load Guppy from {guppy["path"]}')
+    if not guppy_config.path or os.path.exists(guppy_config.path) is False:
+        raise FileNotFoundError(f'Could not load Guppy from path={guppy_config.path}')
+
+    if not guppy_config.flowcell or not guppy_config.kit:
+        raise ValueError('To run Guppy, "flowcell" and "kit" must be defined in config')
 
     command = [
         guppy_wrapper,
-        '-g', guppy['path'],
+        '-g', guppy_config.path,
         '-r', fast5_out_path,
-        '-f', guppy['flowcell'],
-        '-k', guppy['kit'],
+        '-f', guppy_config.flowcell,
+        '-k', guppy_config.kit,
         '-a', tmpl.ANNOT_SUBDIR,
         '-t', str(threads)
     ]

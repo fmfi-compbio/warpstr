@@ -6,8 +6,8 @@ import src.templates as tmpl
 from src.dtw_automata import main_wrapper
 from src.extractor import extract_reads, extract_tr_all
 from src.guppy import guppy_annotate
-from src.input_handler.input import config
-from src.prepare_sequence import prepare_sequence
+from src.input_handler.input import inputs, main_config, warpstr_config
+from src.input_handler.locus import Locus
 from src.report import run_genotyping_complex, run_genotyping_overview
 from src.squiggler import Squiggler
 
@@ -15,77 +15,65 @@ from src.squiggler import Squiggler
 
 start_time = aux.get_start_time()
 script_path, _ = os.path.split(os.path.abspath(__file__))
-verbose = config['verbose']
 
 # prepare output path
-main_out_path = config['output']
-if os.path.isdir(main_out_path) is False:
-    os.makedirs(main_out_path)
-if config['exp_signal_generation']:
-    squiggler = Squiggler(config['pore_model_path'], config['reference_path'])
-if config['genotyping']:
+if os.path.isdir(main_config.output) is False:
+    os.makedirs(main_config.output)
+if main_config.exp_signal_generation:
+    squiggler = Squiggler(main_config.reference_path)
+    print('vytvaram squiggler')
+if main_config.genotyping:
     muscle_path = os.path.join(script_path, 'example', 'muscle3.8.31_i86linux64')
 
 # run main extraction of fast5 files per each locus
-total_loci = len(config['loci'])
-for idx, locus in enumerate(config['loci'], start=1):
-    log = f"Processing {idx} of {total_loci} Locus name: {locus['name']}"
+total_loci = len(warpstr_config['loci'])
+for idx, obj in enumerate(warpstr_config['loci'], start=1):
+    log = f"Processing {idx} of {total_loci} Locus name: {obj['name']}"
+    locus = Locus(**obj)
     start_locus_time = datetime.now()
     last_time = start_locus_time
     print(tmpl.LOG_MSG_TIME.format(start=start_locus_time, log=log))
 
-    if 'flank_length' not in locus:
-        locus['flank_length'] = config['flank_length']
-        print(f'Flank length not set for locus - using default value of {config["flank_length"]}')
-
-    if 'sequence' not in locus:
-        locus = prepare_sequence(locus, config['reference_path'])
-        print(
-            f'Sequence was not set for {locus["name"]}. Automatic configuration defined sequence as:\n{locus["sequence"]}\nderived from reference sequence {locus["noting"]}')
-
     # prepare all possible output subdirs
-    locus_path = os.path.join(main_out_path, locus['name'])
-    aux.prepare_subdirs(locus_path, config)
+    # aux.prepare_subdirs(locus_path, config)
 
     # 1st step: finding reads mapped to the desired locus and extracting them as single fast5s
-    if config['single_read_extraction']:
-        for data_path in config['inputs']:
-            samples = data_path['runs'].split(',')
-            results_dict = extract_reads(data_path['path'], locus['coord'],
-                                         samples, locus_path, threads=config['threads'])
-        print('Finished extraction of single fast5 reads mapped to the locus', locus['name'])
-        last_time = aux.print_time_duration(start_locus_time, 'read extraction', last_time, verbose)
+    if main_config.single_read_extraction:
+        for inp in inputs:
+            samples = inp.runs.split(',')
+            extract_reads(inp.path, locus.coord, samples, locus.path)
+        print('Finished extraction of single fast5 reads mapped to the locus', locus.name)
+        # last_time = aux.print_time_duration(start_locus_time, 'read extraction', last_time)
 
     # 2nd step: call guppy basecalling with annotation
-    if config['guppy_annotation']:
-        guppy_annotate(script_path, locus_path, config['threads'], config['guppy_config'])
-        last_time = aux.print_time_duration(start_locus_time, 'guppy annotation', last_time, verbose)
+    if main_config.guppy_annotation:
+        guppy_annotate(script_path, locus.path, main_config.threads)
+        # last_time = aux.print_time_duration(start_locus_time, 'guppy annotation', last_time)
 
     # generate expected signals
-    if config['exp_signal_generation']:
-        squiggler.process_locus(locus_path, locus['flank_length'], locus['coord'])
-        last_time = aux.print_time_duration(start_locus_time, 'expected signal generation', last_time, verbose)
+    if main_config.exp_signal_generation:
+        print('pustam squiggler')
+        squiggler.process_locus(locus)
+        # last_time = aux.print_time_duration(start_locus_time, 'expected signal generation', last_time)
 
     # extract tandem repeat regions
-    if config['tr_region_extraction']:
-        extract_tr_all(locus_path, config['alignment'], config['threads'])
-        last_time = aux.print_time_duration(start_locus_time, 'tr extraction', last_time, verbose)
+    if main_config.tr_region_extraction:
+        extract_tr_all(locus)
+        # last_time = aux.print_time_duration(start_locus_time, 'tr extraction', last_time)
 
     # run tandem repeat length calling
     overview_df, collapsed_df = None, None
-    if config['tr_region_calling']:
-        tr_results, overview_df, collapsed_df = main_wrapper(locus_path, config['pore_model_path'],
-                                                             locus, config['tr_calling_config'], config['threads'])
-        # create_report(main_out_path,tr_results,locus,locus_path,src_report_path)
-        last_time = aux.print_time_duration(start_locus_time, 'tr calling', last_time, verbose)
+    if main_config.tr_region_calling:
+        overview_df, collapsed_df = main_wrapper(locus)
+        # last_time = aux.print_time_duration(start_locus_time, 'tr calling', last_time)
 
     # run genotyping
-    if config['genotyping']:
-        run_genotyping_overview(overview_df, locus_path, config['genotyping_config'], muscle_path)
-        run_genotyping_complex(locus_path, config['genotyping_config'], locus, collapsed_df)
-        last_time = aux.print_time_duration(start_locus_time, 'genotyping', last_time, verbose)
+    if main_config.genotyping:
+        run_genotyping_overview(overview_df, locus.path, muscle_path)
+        run_genotyping_complex(locus.path, locus, collapsed_df)
+        last_time = aux.print_time_duration(start_locus_time, 'genotyping', last_time)
 
-    aux.print_time_duration(start_locus_time, f"locus={locus['name']} processing", None, 5)
+    aux.print_time_duration(start_locus_time, f'locus={locus.name} processing', None)
 
 
 end_time = datetime.now()

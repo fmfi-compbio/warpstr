@@ -1,6 +1,8 @@
 import argparse
 import os
 import pathlib
+from dataclasses import dataclass
+from typing import Optional
 
 import yaml
 
@@ -23,58 +25,7 @@ def load_args(script_path: str):
         raise ValueError(f'Error when loading config file from {defaults_path}')
 
     add_defaults(config, defaults)
-    validate_config(config)
-
     return config
-
-
-def validate_config(config):
-    """
-    Validates input config
-    :return: arg - path to config file
-    """
-
-    tr_config = config['tr_calling_config']
-    if config['tr_region_calling']:
-        if 'normalization' in tr_config and tr_config['normalization'] != 'MAD':
-            raise ValueError(
-                'Currently only "MAD" is supported for normalization')
-        if 'min_values_per_state' in tr_config and not (isinstance(tr_config['min_values_per_state'], int) and tr_config['min_values_per_state'] > 0):
-            raise ValueError(
-                'Value of "min_values_per_state" must be integer and larger than zero')
-        if 'states_in_segment' in tr_config and not (isinstance(tr_config['states_in_segment'], int) and tr_config['states_in_segment'] > 0):
-            raise ValueError(
-                'Value of "states_in_segment" must be integer and larger than zero')
-        if 'min_state_similarity' in tr_config and not (isinstance(tr_config['min_state_similarity'], (float, int)) and tr_config['min_state_similarity'] > 0):
-            raise ValueError(
-                'Value of "min_state_similarity" must be float and larger than zero')
-        if 'spike_removal' in tr_config and tr_config['spike_removal'] not in ['None', 'median3', 'median5', 'Brute']:
-            raise ValueError(
-                'Supported values for "spike_removal" are "None", "median3", "median5", "Brute"')
-        if 'normalization' in tr_config and tr_config['normalization'] not in ['MAD', 'Without']:
-            raise ValueError(
-                'Supported values for "normalization" are "MAD", "Without"')
-        if 'rescaling' not in tr_config:
-            raise ValueError('Missing config for rescaling')
-        rc_conf = tr_config['rescaling']
-        if 'threshold' in rc_conf and not (isinstance(rc_conf['threshold'], (float, int)) and rc_conf['threshold'] > 0):
-            raise ValueError(
-                'Value of "threshold" in rescaling must be float and larger than zero')
-        if 'max_std' in rc_conf and not (isinstance(rc_conf['max_std'], (float, int)) and rc_conf['max_std'] > 0):
-            raise ValueError(
-                'Value of "max_std" in rescaling must be float and larger than zero')
-        if 'method' in rc_conf and rc_conf['method'] not in ['mean', 'median']:
-            raise ValueError(
-                'Supported values for "method" in rescaling are "mean", "median"')
-
-    gt_config = config['genotyping_config']
-    if config['genotyping']:
-        if 'min_weight' in gt_config and not (isinstance(gt_config['min_weight'], (float, int)) and gt_config['min_weight'] >= 0 and gt_config['min_weight'] <= 1):
-            raise ValueError(
-                'Value of "min_weight" in rescaling must be float and larger than zero')
-        if 'std_filter' in gt_config and not (isinstance(gt_config['std_filter'], (float, int)) and gt_config['std_filter'] > 1):
-            raise ValueError(
-                'Value of "std_filter" in rescaling must be float and larger or equal than 1')
 
 
 def add_defaults(config, default):
@@ -137,5 +88,122 @@ def load_yaml(yaml_path: str):
     return loaded_yaml
 
 
+@dataclass
+class RescalerConfig:
+    reps_as_one: bool = False
+    threshold: float = 0.5
+    max_std: float = 0.5
+    method: str = 'mean'
+
+    def __post_init__(self):
+        assert self.threshold > 0
+        assert self.max_std > 0
+        assert self.method == 'mean' or self.method == 'median'
+
+
+@dataclass
+class CallerConfig:
+    spike_removal: str = 'Brute'
+    min_values_per_state: int = 4
+    states_in_segment: int = 6
+    min_state_similarity: float = 0.75
+    visualize_alignment: bool = True
+    visualize_phase: bool = True
+    visualize_strand: bool = True
+    visualize_cost: bool = True
+
+    def __post_init__(self):
+        assert self.min_values_per_state > 1
+        assert self.states_in_segment > 1
+        assert self.min_state_similarity > 0
+        assert self.spike_removal in ['None', 'median3', 'median5', 'Brute']
+
+
+@dataclass
+class GenotypingConfig:
+    min_weight: float = 0.2
+    std_filter: float = 2
+    visualize: bool = True
+    msa: bool = False
+
+    def __post_init__(self):
+        assert self.min_weight > 0 and self.min_weight < 1
+        assert self.std_filter > 1
+
+
+@dataclass
+class AlignmentConfig:
+    accuracy_factor: float = 1.15
+    identity_factor: float = 0.85
+    match_score: int = 2
+    mismatch_score: int = -3
+    gap_open_score: int = -3
+    gap_extend_score: int = -3
+
+
+@dataclass
+class GuppyConfig:
+    path: Optional[str] = None
+    flowcell: Optional[str] = None
+    kit: Optional[str] = None
+
+
+@dataclass
+class Config:
+    output: str
+    reference_path: str
+    pore_model_path: str
+    single_read_extraction: bool
+    guppy_annotation: bool
+    exp_signal_generation: bool
+    tr_region_extraction: bool
+    tr_region_calling: bool
+    genotyping: bool
+    flank_length: int
+    threads: int
+    verbose: int = 0
+    force_overwrite: bool = False
+
+
+@dataclass
+class InputConfig:
+    path: str
+    runs: str
+
+
 ROOT_DIR_PATH = pathlib.Path().resolve()
-config = load_args(ROOT_DIR_PATH)
+warpstr_config = load_args(ROOT_DIR_PATH)
+
+main_config = Config(
+    output=warpstr_config['output'],
+    pore_model_path=warpstr_config['pore_model_path'],
+    exp_signal_generation=warpstr_config['exp_signal_generation'],
+    reference_path=warpstr_config['reference_path'],
+    single_read_extraction=warpstr_config['single_read_extraction'],
+    guppy_annotation=warpstr_config['guppy_annotation'],
+    tr_region_calling=warpstr_config['tr_region_calling'],
+    tr_region_extraction=warpstr_config['tr_region_extraction'],
+    genotyping=warpstr_config['genotyping'],
+    threads=warpstr_config['threads'],
+    verbose=warpstr_config['verbose'],
+    force_overwrite=warpstr_config['force_overwrite'],
+    flank_length=warpstr_config['flank_length']
+)
+
+inputs = [InputConfig(**i) for i in warpstr_config.get('inputs', [])]
+
+
+print('NACITAVAM NASTAVENIE')
+rescaler_config = RescalerConfig(**warpstr_config['rescaling'])
+caller_config = CallerConfig(**warpstr_config['tr_calling_config'])
+alignment_config = AlignmentConfig(**warpstr_config['alignment'])
+genotyping_config = GenotypingConfig(**warpstr_config['genotyping_config'])
+
+if 'guppy_config' in warpstr_config:
+    guppy_config = GuppyConfig(**warpstr_config['guppy_config'])
+else:
+    guppy_config = GuppyConfig()
+
+
+if 'loci' not in warpstr_config:
+    raise KeyError('No loci defined in the config')

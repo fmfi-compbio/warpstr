@@ -37,8 +37,8 @@ FASTA_HEAD = '''***Settings for alignment:\n*Match score: {match}\n*Mismatch sco
 FASTA_READNAME_ID = '''>{read_id}_{reverse}\n'''
 ALIGNMENT_MATCH_CHAR = '|'
 ALIGNMENT_MISMATCH_CHAR = '-'
-ALIGNMENT_SUFFIX_FILE = '_mappings.txt'
-ALIGNMENT = '''{score}\n{text}\n{equal}\n{query}\n'''
+ALIGNMENT_SUFFIX_FILE = 'mappings.txt'
+ALIGNMENT = '''{text}\n{equal}\n{query}\n'''
 ALIGNMENT_SEPARATOR = '*'*100+'\n'
 
 # graph for state automata

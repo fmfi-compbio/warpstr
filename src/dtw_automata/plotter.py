@@ -1,13 +1,15 @@
 import bisect
 import os
+from typing import Optional
 
 import seaborn as sns
 from matplotlib import pyplot as plt
 
 import src.templates as tmpl
+from src.input_handler.input import caller_config
 
 
-def plot_collapsed(df_overview, locus_path):
+def plot_collapsed(df_overview, locus_path: str):
     """
     Plot predictions as per repeat unit
     """
@@ -24,8 +26,8 @@ def plot_collapsed(df_overview, locus_path):
     plt.savefig(out_path, bbox_inches='tight')
     plt.close()
 
-    df_template = df_overview[df_overview['reverse'] == False]
-    df_reverse = df_overview[df_overview['reverse'] == True]
+    df_template = df_overview[df_overview['reverse'] == False]  # noqa: E712
+    df_reverse = df_overview[df_overview['reverse'] == True]  # noqa: E712
     out_path = os.path.join(locus_path, tmpl.SUMMARY_SUBDIR,
                             'collapsed_predictions_strand.svg')
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(
@@ -46,31 +48,16 @@ def plot_collapsed(df_overview, locus_path):
     plt.close()
 
 
-def save_warp_img(out_warp_path, flank_length, warper, resc_warper, reverse, read_name):
-    """
-    Save warping and rescaling image
-    """
-    out_path = os.path.join(out_warp_path, read_name+'_' +
-                            str(reverse)+'_'+str(len(resc_warper.seq))+'.png')
-    start, end, resc_start, resc_end = delineate_tr_region(
-        flank_length, warper.trace, resc_warper.trace, (warper.offset, resc_warper.offset))
-    note = None
-    if (end-start) > 2000 or (resc_end-resc_start) > 2000:
-        note = '*Truncated to 2000 as original length was ' + \
-            str(resc_end-resc_start)
-        end = start + 2000
-        resc_end = resc_start + 2000
-
-    fig, axs = plt.subplots(2, figsize=(16, 4), sharey=True)
-    axs[0].plot(warper.template[start:end], label='signal')
-    axs[0].plot(warper.warped_signal[start:end], label='warped path')
+def save_warp_img(out_path: str, warped_signal, signal, resc_warped, resc_signal, note: Optional[str]):
+    """  Save warping and rescaling image """
+    _, axs = plt.subplots(2, figsize=(16, 4), sharey=True)
+    axs[0].plot(signal, label='signal')
+    axs[0].plot(warped_signal, label='warped path')
     # axs[0].set_title(warper.seq)
     axs[0].set_ylabel('Norm. current')
     axs[0].legend()
-    axs[1].plot(resc_warper.template[resc_start:resc_end],
-                label='rescaled signal')
-    axs[1].plot(resc_warper.warped_signal[resc_start:resc_end],
-                label='warped path')
+    axs[1].plot(resc_signal, label='rescaled signal')
+    axs[1].plot(resc_warped, label='warped path')
     # axs[1].set_title(resc_warper.seq)
     axs[1].set_ylabel('Norm. current')
     axs[1].legend()
@@ -97,7 +84,7 @@ def delineate_tr_region(flank_length, trace, resc_trace, offsets):
     return start, end, resc_start, resc_end
 
 
-def plot_summaries(locus_path, df_out, config):
+def plot_summaries(locus_path, df_out):
     """
     Plots summaries for results
     """
@@ -115,7 +102,7 @@ def plot_summaries(locus_path, df_out, config):
     df_rev = df_out[(df_out['reverse'] == 1) & (df_out['saved'] == 1)]
     df_temp = df_out[(df_out['reverse'] == 0) & (df_out['saved'] == 1)]
 
-    if config['visualize_strand']:
+    if caller_config.visualize_strand:
         out_path = os.path.join(
             locus_path, tmpl.SUMMARY_SUBDIR, 'predictions_strand.svg')
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(
@@ -165,7 +152,7 @@ def plot_summaries(locus_path, df_out, config):
         plt.savefig(out_path, bbox_inches='tight')
         plt.close()
 
-    if config['visualize_phase']:
+    if caller_config.visualize_phase:
         out_path = os.path.join(
             locus_path, tmpl.SUMMARY_SUBDIR, 'predictions_phase.svg')
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(
@@ -185,7 +172,7 @@ def plot_summaries(locus_path, df_out, config):
         plt.savefig(out_path, bbox_inches='tight')
         plt.close()
 
-    if config['visualize_cost']:
+    if caller_config.visualize_cost:
         out_path = os.path.join(
             locus_path, tmpl.SUMMARY_SUBDIR, 'predictions_cost.svg')
         axis = sns.scatterplot(data=df_saved, x='results', y='dtw_cost2')

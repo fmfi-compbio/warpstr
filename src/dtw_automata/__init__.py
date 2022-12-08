@@ -1,1 +1,1 @@
-from .DtwAutomata import DtwAutomata, main_wrapper  # type: ignore  # noqa: F401
+from .DtwAutomata import CallerWrapper, main_wrapper  # type: ignore  # noqa: F401

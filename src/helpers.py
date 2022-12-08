@@ -2,6 +2,8 @@ import os
 import shutil
 from datetime import datetime
 
+from src.input_handler.input import main_config
+
 from . import templates as tmpl
 
 
@@ -11,7 +13,7 @@ def get_start_time():
     return start_time
 
 
-def print_time_duration(start_time, process, second_time, verbose):
+def print_time_duration(start_time, process, second_time):
     if second_time is None or second_time == start_time:
         use_time = start_time
     else:
@@ -22,7 +24,7 @@ def print_time_duration(start_time, process, second_time, verbose):
     hours = t_seconds//3600
     minutes = (t_seconds-(hours*3600))//60
     seconds = (t_seconds - minutes * 60)
-    if verbose > 0:
+    if main_config.verbose > 0:
         print(tmpl.DURATION_PRINT.format(process=process, hours=int(hours), minutes=int(minutes), seconds=int(seconds)))
     return end_time
 

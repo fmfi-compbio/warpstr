@@ -1,19 +1,30 @@
 import os
 import sys
+from dataclasses import dataclass
 from multiprocessing import Pool
+from typing import List
 
 import h5py
 import pysam
 
 import src.templates as tmpl
+from src.input_handler.input import main_config
+
+
+@dataclass
+class Read:
+    name: str
+    is_reverse: bool
+    sam_position: int
 
 
 class Extractor:
     """
     This class is for extractors of fast5files mapped to specific genomic coordinates
     """
+    fast5s: List[Read]
 
-    def __init__(self, root_path, bamfile, coord, sample, full_sample):
+    def __init__(self, root_path: str, bamfile, coord: str, sample: str, full_sample: str):
         """
         :input root_path: lower level path having .bam files and .fast5 files
         :input bamfile: path to bam file
@@ -27,38 +38,37 @@ class Extractor:
         self.sample = sample
         self.full_sample = full_sample
         self.coord = coord
-
+        self.fast5s = []
         # find fast5s in this bam, mapped to genomic coordinates
-        self.fast5s = self.get_fast5_list()
-        self.total_reads = len(self.fast5s)
+
         self.summary = []
 
     def get_fast5_list(self):
         """
         Returns the list of fast5 readnames mapped to the input genomic coordinates
         """
-
-        fast5_list = []
-
         # fetch reads mapped to the locus using pysam
         samfile = pysam.AlignmentFile(self.bamfile, 'r')
         chrom, start, end = process_coord(self.coord)
         for x in samfile.fetch(chrom, start, end):
             if (x.flag >> 11 & 1) == 0 and (x.flag >> 8 & 1) == 0:
-                sz = start - x.reference_start
+                sam_position = start - x.reference_start
                 if x.is_reverse:
-                    sz = len(x.query_sequence)-sz
-                fast5_list.append((x.query_name, x.is_reverse, sz))
-        return fast5_list
+                    sam_position = len(x.query_sequence)-sam_position
+                self.fast5s.append(Read(
+                    name=x.query_name,
+                    is_reverse=x.is_reverse,
+                    sam_position=sam_position)
+                )
 
-    def extract_from_multifast5s(self, out_path):
+    def extract_from_multifast5s(self, out_path: str):
         """
         Extract single fast5 files using the list of found fast5 files
         :param out_path: path where to extract single fast5 files
         """
 
         # append prefix to each found read name in the list
-        fast5names_lst = ['read_'+f[0] for f in self.fast5s]
+        fast5names_lst = ['read_'+f.name for f in self.fast5s]
         dbg_msg = 'There are {num} in {path}'.format(
             num=len(fast5names_lst), path=self.path)
         handle_msg_dbg(dbg_msg)
@@ -90,23 +100,16 @@ class Extractor:
                 break
 
         if len(fast5names_lst) != 0:
-            err_msg = 'Some Fast5 have not been found or extracted'
-            handle_msg_err(err_msg)
-
             for i in fast5names_lst:
                 rname = i[5:]
                 err_msg = '{read} not found or extracted'.format(read=rname)
                 handle_msg_err(err_msg)
                 to_delete = None
                 for j in self.fast5s:
-                    if j[0] == rname:
+                    if j.name == rname:
                         to_delete = j
                 if to_delete is not None:
                     self.fast5s.remove(to_delete)
-                else:
-                    err_msg = 'not found {read} could not be deleted from list of fast5s'.format(
-                        read=readname)
-                    handle_msg_err(err_msg)
             return False
 
     def get_summary(self):
@@ -117,12 +120,12 @@ class Extractor:
         summary = []
         basic_info = ','+self.sample+','+self.full_sample+','
         for x in self.fast5s:
-            summary.append(x[0]+basic_info+str(x[1])+','+str(x[2]))
+            summary.append(x.name+basic_info+str(x.is_reverse)+','+str(x.sam_position))
 
         self.summary = summary
 
 
-def get_bam_list(path, coord, samples, outpath):
+def get_bam_list(path: str, coord: str, samples: List[str], outpath: str):
     """
     Creates list for later processing, which contains:
     :param path: path with data for a specific sample
@@ -134,12 +137,9 @@ def get_bam_list(path, coord, samples, outpath):
 
     # for each sample find all .bam files
     for sample in samples:
-        dbg_msg = 'processing {sample} in {path}'.format(
-            sample=sample, path=path)
-        handle_msg_dbg(dbg_msg)
         for full_sample_name in [i for i in os.listdir(path) if i.startswith(sample)]:
             sample_path = os.path.join(path, full_sample_name)
-            for dirpath, dirnames, filenames in os.walk(sample_path):
+            for dirpath, _, filenames in os.walk(sample_path):
                 for filename in [f for f in filenames if f.endswith('.bam')]:
                     bamfile = os.path.join(dirpath, filename)
                     bamfiles.append(
@@ -181,7 +181,7 @@ def process_bam_file(bam_file):
     return ex
 
 
-def process_coord(coord):
+def process_coord(coord: str):
     """
     Break down genomic coordinates represented as string into separate coordinates
     :param coord: genomic coordinates
@@ -216,7 +216,7 @@ def copy_fast5(old_read, new_path):
                 new_single_read.copy(old_read[group], group)
 
 
-def extract_reads(path, coord, samples, out_path, threads, verbose=0):
+def extract_reads(path: str, coord: str, samples: List[str], out_path: str):
     """
     Wrapper for finding and processing bam files in the path
     :param path: high level path containg .bam files and .fast5 files
@@ -231,40 +231,22 @@ def extract_reads(path, coord, samples, out_path, threads, verbose=0):
     x = get_bam_list(path, coord, samples, fast5_out_path)
 
     # process these filepaths in threads
-    dbg_msg = 'Running with {thr}'.format(thr=threads)
+    dbg_msg = 'Running with {thr}'.format(thr=main_config.threads)
     handle_msg_dbg(dbg_msg)
 
     bam_extracts = []
-    if threads > 1:
-        with Pool(threads) as p:
+    if main_config.threads > 1:
+        with Pool(main_config.threads) as p:
             bam_extracts = p.map(process_bam_file, x)
-    elif threads == 1:
+    elif main_config.threads == 1:
         bam_extracts = [process_bam_file(i) for i in x]
 
     # prepare file for writing summary
     overview_file = os.path.join(out_path, tmpl.OVERVIEW_NAME)
-
-    # write summary to the file
-    try:
-        with open(overview_file, 'a') as f:
-            for bam_ex in bam_extracts:
-                for read in bam_ex.summary:
-                    f.write(read+'\n')
-    except Exception as e:
-        err_msg = '{err} when writing overview file {path}'.format(
-            err=e, path=overview_file)
-        handle_msg_err(err_msg)
-        return False
-
-    results_dict = []
-    for bex in bam_extracts:
-        dictionary = {
-            'sample': bex.sample,
-            'sample_run': bex.full_sample,
-            'total_reads': bex.total_reads,
-            'processed_reads': len(bex.fast5s)}
-        results_dict.append(dictionary)
-    return results_dict
+    with open(overview_file, 'a') as f:
+        for bam_ex in bam_extracts:
+            for read in bam_ex.summary:
+                f.write(read+'\n')
 
 
 def handle_msg_err(err_msg):

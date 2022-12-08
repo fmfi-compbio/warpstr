@@ -12,6 +12,7 @@ from sklearn.mixture import BayesianGaussianMixture
 
 import src.templates as tmpl
 from src.dtw_automata.overview import load_overview
+from src.input_handler.input import genotyping_config
 
 
 def find_nearest(array, value):
@@ -97,7 +98,7 @@ def filter_out(values, STD_COEFF):
     return out
 
 
-def run_genotyping_overview(overview, locus_path, config, muscle_path):
+def run_genotyping_overview(overview, locus_path, muscle_path):
     if overview is None:
         overview_path, overview = load_overview(locus_path)
 
@@ -112,12 +113,12 @@ def run_genotyping_overview(overview, locus_path, config, muscle_path):
             if use_basecalls:
                 unfilt_basecalls.append(row.r_seq_start-row.l_seq_end)
 
-    values = filter_out(unfilt_values, config['std_filter'])
-    gmm_out_dict = run_genotyping(values, config['min_weight'])
+    values = filter_out(unfilt_values, genotyping_config.std_filter)
+    gmm_out_dict = run_genotyping(values, genotyping_config.min_weight)
 
     if use_basecalls:
-        basecalls = filter_out(unfilt_basecalls, config['std_filter'])
-        gmm_out_dict_bc = run_genotyping(basecalls, config['min_weight'])
+        basecalls = filter_out(unfilt_basecalls, genotyping_config.std_filter)
+        gmm_out_dict_bc = run_genotyping(basecalls, genotyping_config.min_weight)
 
     alleles = decode_alleles(gmm_out_dict)
     if use_basecalls:
@@ -137,7 +138,7 @@ def run_genotyping_overview(overview, locus_path, config, muscle_path):
         print(f'Allele lengths as given by basecall: {alleles_bc[0]},{alleles_bc[2]},\
             frequency: {alleles_bc[1]},{alleles_bc[3]}')
 
-    if config['visualize']:
+    if genotyping_config.visualize:
         img_path = os.path.join(locus_path, tmpl.SUMMARY_SUBDIR, 'alleles.svg')
         vals = (gmm_out_dict['group1'], gmm_out_dict['group2'])
         if use_basecalls:
@@ -146,7 +147,7 @@ def run_genotyping_overview(overview, locus_path, config, muscle_path):
         else:
             plot_clustering_preds(img_path, vals, None, alleles, None)
 
-    if config['msa']:
+    if genotyping_config.msa:
         path_our = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, 'sequences')
         msa_out, trcalls = call_muscle(muscle_path, path_our)
 
@@ -160,7 +161,7 @@ def run_genotyping_overview(overview, locus_path, config, muscle_path):
             msa_out_group1_bc, msa_out_group2_bc = groups_from_pred(muscle_path, path_bc, gmm_out_dict_bc, basecalls)
 
 
-def run_genotyping_complex(locus_path, config, locus, df):
+def run_genotyping_complex(locus_path, locus, df):
     if df is None:
         inpath = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, tmpl.COMPLEX_SUBDIR, 'complex_repeat_units.csv')
         df = pd.read_csv(inpath, index_col=0)
@@ -169,13 +170,13 @@ def run_genotyping_complex(locus_path, config, locus, df):
     if len(cols) < 2:
         return
 
-    df = filter_out_complex(df, cols, config['std_filter'])
+    df = filter_out_complex(df, cols, genotyping_config.std_filter)
     X = np.array(df[cols]).reshape(-1, len(cols))
     model_bayes = BayesianGaussianMixture(weight_concentration_prior=0.25,
                                           covariance_type='tied', n_components=2, n_init=5, max_iter=1000).fit(X)
 
     out = {}
-    if any(x < config['min_weight'] for x in model_bayes.weights_):
+    if any(x < genotyping_config.min_weight for x in model_bayes.weights_):
         out['is_hetero'] = False
         out['group1'] = df.index
         out['group2'] = []

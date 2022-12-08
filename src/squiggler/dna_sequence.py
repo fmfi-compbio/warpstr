@@ -24,16 +24,12 @@ def process_coord(coord: str):
 
 
 def get_reverse_strand(seq: str) -> str:
-    """
-    Reverses sequence
-    """
+    """ Reverses sequence """
     return str(Seq(seq).reverse_complement())
 
 
 def get_ref_pattern(coord: str, ref: str):
-    """
-    Gets reference pattern
-    """
+    """ Gets reference pattern """
     temp_ref_pattern = pysam.faidx(ref, coord)
     temp_ref_pattern = ''.join(temp_ref_pattern.splitlines()[1:]).upper()
     rev_ref_pattern = get_reverse_strand(temp_ref_pattern)
@@ -41,9 +37,7 @@ def get_ref_pattern(coord: str, ref: str):
 
 
 def get_flanks(coord: str, ref: str, flank_length: int, reverse: bool, motifpart: int = 0):
-    """
-    Gets flanking sequences
-    """
+    """ Load reference and parse both flanks """
     chrom, start, end = process_coord(coord)
 
     lflank_coord = chrom+':'+str(start-flank_length)+'-'+str(start+motifpart-1)

@@ -1,12 +1,14 @@
 import os
+from typing import List
 
 import numpy as np
 import pandas as pd
 
 import src.templates as tmpl
+from src.input_handler.locus import Locus
 
 
-def store_collapsed(results, units, rep_units, reverse_lst, locus_path):
+def store_collapsed(results, units: List[str], rep_units: List[List[str]], reverse_lst: List[bool], locus: Locus):
     """
     Stores results as given by repeat units
     """
@@ -25,14 +27,14 @@ def store_collapsed(results, units, rep_units, reverse_lst, locus_path):
     df_preds = pd.DataFrame.from_dict(preds)
 
     out_path = os.path.join(
-        locus_path, tmpl.PREDICTIONS_SUBDIR, tmpl.COMPLEX_SUBDIR)
+        locus.path, tmpl.PREDICTIONS_SUBDIR, tmpl.COMPLEX_SUBDIR)
     if os.path.isdir(out_path) is False:
         os.mkdir(out_path)
     df_preds.to_csv(os.path.join(out_path, 'complex_repeat_units.csv'))
     return df_preds
 
 
-def load_overview(locus_path):
+def load_overview(locus_path: str):
     """
     Loads overview file as dataframe
     """
@@ -46,13 +48,13 @@ def load_overview(locus_path):
     return overview_path, df_overview
 
 
-def store_results(locus_path, overview_path, df_overview, seq_results, cost_results):
+def store_results(overview_path, df_overview, seq_results, cost_results, locus_path: str):
     """
     Stores results in overview file
     """
     fasta_lst, newcol, dbg1, dbg2, dbg3 = append_results(
         seq_results, cost_results, df_overview)
-    write_results_to_fasta(locus_path, fasta_lst)
+    write_results_to_fasta(fasta_lst, locus_path)
     df_overview = save_overview(
         overview_path, df_overview, newcol, dbg1, dbg2, dbg3)
     return df_overview
@@ -80,7 +82,7 @@ def append_results(seq_results, cost_results, df_overview):
     return fasta_lst, newcol, dbg1, dbg2, dbg3
 
 
-def write_results_to_fasta(locus_path, fasta_lst):
+def write_results_to_fasta(fasta_lst, locus_path: str):
     """
     Stores results as FASTA sequences
     """
