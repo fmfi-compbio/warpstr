@@ -438,7 +438,7 @@ def save_alignment(row, alignments: List[Mapping], align_path: str):
     :param alignments: alignments to be written, list containing usually formatted alignment and string with score
     :param align_path: path where alignment will be appended
     """
-    m_path = os.path.join(align_path, row.sample+tmpl.ALIGNMENT_SUFFIX_FILE)
+    m_path = os.path.join(align_path, row.sample+'mappings.txt')
     if os.path.exists(m_path) is False:
         with open(m_path, 'w') as f:
             f.write(tmpl.ALIGNMENT_SEPARATOR)

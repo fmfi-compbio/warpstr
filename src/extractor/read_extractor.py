@@ -165,9 +165,6 @@ def process_bam_file(bam_file):
     sampleout_path = os.path.join(out_path, bam_file[4])
     if os.path.isdir(sampleout_path) is False:
         os.makedirs(sampleout_path)
-        if os.path.isdir(sampleout_path) is False:
-            tmpl.ERR_CREATE_DIR.format(directory=sampleout_path)
-            return None
 
     # call single fast5 extraction and get summary
     try:
