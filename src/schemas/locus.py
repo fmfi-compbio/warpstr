@@ -3,7 +3,7 @@ from typing import Optional
 
 import pysam
 
-from .input import main_config
+from src.config import main_config
 
 
 class Locus:
@@ -11,9 +11,9 @@ class Locus:
     coord: str
     sequence: str
     path: str
+    flank_length: int
     motif: Optional[str] = None
     noting: Optional[str] = None
-    flank_length: int = main_config.flank_length
 
     def __init__(
         self,
@@ -23,6 +23,7 @@ class Locus:
         motif: Optional[str] = None,
         noting: Optional[str] = None,
         flank_length: Optional[int] = None
+
     ):
         self.name = name
         self.coord = coord

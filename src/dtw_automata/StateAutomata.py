@@ -183,7 +183,7 @@ class StateAutomata:
                 idx = next_simp_st.idx
                 dontstop = True
                 for test in kmer_states[idx]:
-                    if new_kmer == test.kmer and checkprevious(curr_kmer_state, test):
+                    if new_kmer == test.kmer and self.checkprevious(curr_kmer_state, test):
                         dontstop = False
                         curr_kmer_state.chain(test)
                 if dontstop:
@@ -224,6 +224,18 @@ class StateAutomata:
                 next_st.incoming.append(i)
 
         return states, repeat_mask, endstate
+
+    @staticmethod
+    def checkprevious(curr_state: KmerState, next_state: KmerState) -> bool:
+        """
+        Check whether a loop of the same states is not formed
+        """
+        to_be_added = (curr_state.simple_idx, curr_state.idx)
+        existing = next_state.previous
+        if to_be_added[0] == existing[0]:
+            return True
+        else:
+            return False
 
 
 class KmerState:
@@ -266,15 +278,3 @@ class KmerState:
         :param state: chains current k-mer state with another by adding into the nextpos list
         """
         self.nextpos.append(state)
-
-
-def checkprevious(curr_state: KmerState, next_state: KmerState) -> bool:
-    """
-    Check whether a loop of the same states is not formed
-    """
-    to_be_added = (curr_state.simple_idx, curr_state.idx)
-    existing = next_state.previous
-    if to_be_added[0] == existing[0]:
-        return True
-    else:
-        return False

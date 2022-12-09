@@ -174,6 +174,9 @@ class InputConfig:
 ROOT_DIR_PATH = pathlib.Path().resolve()
 warpstr_config = load_args(ROOT_DIR_PATH)
 
+if 'loci' not in warpstr_config:
+    raise KeyError('No loci defined in the config')
+
 main_config = Config(
     output=warpstr_config['output'],
     pore_model_path=warpstr_config['pore_model_path'],
@@ -203,7 +206,3 @@ if 'guppy_config' in warpstr_config:
     guppy_config = GuppyConfig(**warpstr_config['guppy_config'])
 else:
     guppy_config = GuppyConfig()
-
-
-if 'loci' not in warpstr_config:
-    raise KeyError('No loci defined in the config')

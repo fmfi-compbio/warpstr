@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import src.templates as tmpl
-from src.input_handler.locus import Locus
+from src.schemas import Locus
 
 from .dna_sequence import get_sequences
 from .pore_model import pore_model

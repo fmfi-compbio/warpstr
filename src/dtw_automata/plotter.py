@@ -1,4 +1,3 @@
-import bisect
 import os
 from typing import Optional
 
@@ -6,7 +5,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 
 import src.templates as tmpl
-from src.input_handler.input import caller_config
+from src.config import caller_config
 
 
 def plot_collapsed(df_overview, locus_path: str):
@@ -67,24 +66,7 @@ def save_warp_img(out_path: str, warped_signal, signal, resc_warped, resc_signal
     plt.close()
 
 
-def delineate_tr_region(flank_length, trace, resc_trace, offsets):
-    """
-    Delineates TR regions
-    """
-    boundary = flank_length - 20
-    start = bisect.bisect_left(trace, boundary - offsets[0] - 5)  # -boundary
-    maxstate = trace[-1]
-    end = bisect.bisect_right(trace, maxstate - boundary)  # +boundary
-
-    resc_start = bisect.bisect_left(
-        resc_trace, boundary - offsets[1] - 5)  # -boundary
-    resc_maxstate = resc_trace[-1]
-    resc_end = bisect.bisect_right(
-        resc_trace, resc_maxstate - boundary)  # +boundary
-    return start, end, resc_start, resc_end
-
-
-def plot_summaries(locus_path, df_out):
+def plot_summaries(locus_path: str, df_out):
     """
     Plots summaries for results
     """
@@ -99,9 +81,8 @@ def plot_summaries(locus_path, df_out):
     else:
         df_out['bc_length'] = 0
 
-    df_rev = df_out[(df_out['reverse'] == 1) & (df_out['saved'] == 1)]
-    df_temp = df_out[(df_out['reverse'] == 0) & (df_out['saved'] == 1)]
-
+    df_rev = df_out[(df_out['reverse'] == 1) & (df_out['saved'] == 1)].copy(deep=True)
+    df_temp = df_out[(df_out['reverse'] == 0) & (df_out['saved'] == 1)].copy(deep=True)
     if caller_config.visualize_strand:
         out_path = os.path.join(
             locus_path, tmpl.SUMMARY_SUBDIR, 'predictions_strand.svg')
@@ -123,15 +104,12 @@ def plot_summaries(locus_path, df_out):
         plt.close()
 
         df_out.rename(columns={'A': 'a', 'B': 'c'})
-        df_rev.rename(columns={'results': 'WarpSTR',
-                      'bc_length': 'Basecalling'}, inplace=True)
-        df_temp.rename(columns={'results': 'WarpSTR',
-                       'bc_length': 'Basecalling'}, inplace=True)
+        df_rev.rename(columns={'results': 'WarpSTR', 'bc_length': 'Basecalling'}, inplace=True)
+        df_temp.rename(columns={'results': 'WarpSTR', 'bc_length': 'Basecalling'}, inplace=True)
         df_rev_melt = df_rev.reset_index().melt(
             id_vars='read_name', value_vars=['WarpSTR', 'Basecalling'])
         df_temp_melt = df_temp.reset_index().melt(
             id_vars='read_name', value_vars=['WarpSTR', 'Basecalling'])
-
         out_path = os.path.join(
             locus_path, tmpl.SUMMARY_SUBDIR, 'predictions_strand_with_basecalls.svg')
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(

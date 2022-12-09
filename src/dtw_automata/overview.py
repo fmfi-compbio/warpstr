@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 import src.templates as tmpl
-from src.input_handler.locus import Locus
+from src.schemas import Locus
 
 
 def store_collapsed(results, units: List[str], rep_units: List[List[str]], reverse_lst: List[bool], locus: Locus):
@@ -35,9 +35,6 @@ def store_collapsed(results, units: List[str], rep_units: List[List[str]], rever
 
 
 def load_overview(locus_path: str):
-    """
-    Loads overview file as dataframe
-    """
     overview_path = os.path.join(locus_path, tmpl.OVERVIEW_NAME)
     try:
         df_overview = pd.read_csv(overview_path)
@@ -49,9 +46,6 @@ def load_overview(locus_path: str):
 
 
 def store_results(overview_path, df_overview, seq_results, cost_results, locus_path: str):
-    """
-    Stores results in overview file
-    """
     fasta_lst, newcol, dbg1, dbg2, dbg3 = append_results(
         seq_results, cost_results, df_overview)
     write_results_to_fasta(fasta_lst, locus_path)
@@ -61,9 +55,6 @@ def store_results(overview_path, df_overview, seq_results, cost_results, locus_p
 
 
 def append_results(seq_results, cost_results, df_overview):
-    """
-    Appends results
-    """
     fasta_lst, newcol, dbg1, dbg2, dbg3 = [], [], [], [], []
     idx = 0
     for row in df_overview.itertuples():
@@ -83,9 +74,7 @@ def append_results(seq_results, cost_results, df_overview):
 
 
 def write_results_to_fasta(fasta_lst, locus_path: str):
-    """
-    Stores results as FASTA sequences
-    """
+    """ Store results as FASTA sequences """
     fasta_out = os.path.join(
         locus_path, tmpl.PREDICTIONS_SUBDIR, 'sequences', 'all.fasta')
     fasta_out_template = os.path.join(
@@ -112,9 +101,7 @@ def write_results_to_fasta(fasta_lst, locus_path: str):
 
 
 def save_overview(overview_path, df_overview, newcol, dbg1, dbg2, dbg3):
-    """
-    Save Warping results in overview
-    """
+    """ Save Warping results in overview """
     prev_res = [c for c in df_overview.columns if c.startswith('result')]
     df_overview.drop(columns=prev_res, inplace=True)
 

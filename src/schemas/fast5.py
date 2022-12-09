@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from scipy.signal import medfilt
 
-from src.input_handler.input import caller_config
+from src.config import caller_config
 
 
 class Fast5:
@@ -73,35 +73,32 @@ class Fast5:
         elif caller_config.spike_removal == 'median5':
             self.data = medfilt(self.data, 5)
         elif caller_config.spike_removal == 'Brute':
-            self.data = brute_remove(self.data)
+            self.data = self.brute_remove(self.data)
 
-    def load_fasta(self):
+    @property
+    def fasta(self):
+        try:
+            s = self.handle['Analyses'][self.bc_tag]['BaseCalled_template']
+            ['Fastq'][()].decode('ascii').split('\n')[1]
+        except KeyError as e:
+            print(f'Could not acquire FASTA sequence from .fast5 file due to error={e}')
+        else:
+            return s
+        return None
+
+    @staticmethod
+    def brute_remove(data):
         """
-        Loads fasta sequence stored in the fast5 data
+        Removes outliers in raw signal data using constants
+        :input data: numpy array with raw signal data containing outliers
+        :output out: raw signal data with outliers replaced by median of neighbours
         """
-        if self.fasta is None:
-            try:
-                fasta = self.handle['Analyses'][self.bc_tag]['BaseCalled_template']['Fastq'][()].decode('ascii').split('\n')[
-                    1]
-            except KeyError as e:
-                print(f'Could not acquire FASTA sequence from .fast5 file due to error={e}')
-            else:
-                return fasta
-        return self.fasta
-
-
-def brute_remove(data):
-    """
-    Removes outliers in raw signal data using constants
-    :input data: numpy array with raw signal data containing outliers
-    :output out: raw signal data with outliers replaced by median of neighbours
-    """
-    out = data.copy()
-    thresh = np.where((data > 1000) | (data < 250))[0]
-    for i in thresh:
-        if i > 2:
-            out[i] = np.median(out[i-2:i+3])
-    return out
+        out = data.copy()
+        thresh = np.where((data > 1000) | (data < 250))[0]
+        for i in thresh:
+            if i > 2:
+                out[i] = np.median(out[i-2:i+3])
+        return out
 
 
 def normalize_signal_mad(data):

@@ -10,9 +10,8 @@ import pandas as pd
 from Bio import pairwise2
 
 import src.templates as tmpl
-from src.input_handler.fast5 import Fast5
-from src.input_handler.input import alignment_config, main_config
-from src.input_handler.locus import Locus
+from src.config import alignment_config, main_config
+from src.schemas import Fast5, Locus
 from src.squiggler.dna_sequence import get_reverse_strand
 
 
@@ -362,11 +361,14 @@ def extract_tr_all(locus: Locus):
     df = load_overview_df(overview_path)
 
     # prepare reads into list for parallelization
-    # read_list= [((ReadForExtraction(name=row.Index, run_id=row.run_id, reverse=row.reverse, approx_location=row.sam_dist), locus)) for index, row in df.iterrows() ]
     read_list = []
     for row in df.itertuples():
-        region = ReadForExtraction(name=row.Index, run_id=row.run_id,
-                                   reverse=row.reverse, approx_location=row.sam_dist)
+        region = ReadForExtraction(
+            name=row.Index,
+            run_id=row.run_id,
+            reverse=row.reverse,
+            approx_location=row.sam_dist
+        )
         read_list.append((region, locus))
 
     # run TR extraction
@@ -416,7 +418,17 @@ def store_fasta(filename: str, fasta: List[FlankInRead]):
 
 
 def process_row(res: FlankInRead):
-    return (res.valid, res.lflank_raw.start, res.lflank_raw.end, res.rflank_raw.start, res.rflank_raw.end, res.l_alignment.position.start, res.l_alignment.position.end, res.r_alignment.position.start, res.r_alignment.position.end)
+    return (
+        res.valid,
+        res.lflank_raw.start,
+        res.lflank_raw.end,
+        res.rflank_raw.start,
+        res.rflank_raw.end,
+        res.l_alignment.position.start,
+        res.l_alignment.position.end,
+        res.r_alignment.position.start,
+        res.r_alignment.position.end
+    )
 
 
 def save_alignment(row, alignments: List[Mapping], align_path: str):

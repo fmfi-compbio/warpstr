@@ -2,7 +2,7 @@ import os
 from subprocess import call
 
 import src.templates as tmpl
-from src.input_handler.input import guppy_config
+from src.config import guppy_config
 
 
 def guppy_annotate(script_path: str, locus_path: str, threads: int):

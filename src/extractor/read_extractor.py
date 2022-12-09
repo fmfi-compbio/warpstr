@@ -8,7 +8,7 @@ import h5py
 import pysam
 
 import src.templates as tmpl
-from src.input_handler.input import main_config
+from src.config import main_config
 
 
 @dataclass

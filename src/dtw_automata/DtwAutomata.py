@@ -1,22 +1,17 @@
 import os
-import re
-from dataclasses import dataclass
 from multiprocessing import Pool
-from typing import List, Tuple
-
-import numpy as np
+from typing import List
 
 import src.dtw_automata.StateAutomata as sta
 import src.templates as tmpl
-from src.dtw_automata.overview import load_overview, store_collapsed, store_results
-from src.dtw_automata.plotter import plot_collapsed, plot_summaries
+from src.config import caller_config, main_config
 from src.extractor.tr_extractor import Flanks, load_flanks
-from src.input_handler.fast5 import Fast5
-from src.input_handler.input import caller_config, main_config
-from src.input_handler.locus import Locus
+from src.schemas import Fast5, Locus, ReadSignal
 from src.squiggler.pore_model import pore_model
 
-from .caller import CallerResult, WarpSTR
+from .caller import WarpSTR, warpstr_call_sequential
+from .overview import load_overview, store_collapsed, store_results
+from .plotter import plot_collapsed, plot_summaries
 
 
 def main_wrapper(locus: Locus):
@@ -29,14 +24,15 @@ def main_wrapper(locus: Locus):
     dtw_automat = CallerWrapper(locus)
     results = dtw_automat.run_automata(workload)
 
-    print(results)
     seq_results = [(i.seq, i.resc_seq) for i in results]
     cost_results = [(i.cost, i.resc_cost) for i in results]
 
     df_overview = store_results(overview_path, df_overview, seq_results, cost_results, locus.path)
     plot_summaries(locus.path, df_overview)
 
-    if len(dtw_automat.units) > 0:
+    df_collapsed = None
+    if len(dtw_automat.units) > 1:
+        print(f'Running complex genotyping as complex repeat units present: {dtw_automat.units}')
         collapsed_results = [dtw_automat.collapse_repeats(i[1]) for i in seq_results]
         reverse_lst = [i.reverse for i in workload]
         df_collapsed = store_collapsed(
@@ -44,13 +40,6 @@ def main_wrapper(locus: Locus):
         plot_collapsed(df_collapsed, locus.path)
 
     return df_overview, df_collapsed
-
-
-@dataclass
-class ReadSignal:
-    name: str
-    reverse: bool
-    signal: np.ndarray
 
 
 def get_workload(df_overview, path: str) -> List[ReadSignal]:
@@ -71,18 +60,36 @@ def get_workload(df_overview, path: str) -> List[ReadSignal]:
 class CallerWrapper:
     temp_sta: sta.StateAutomata
     rev_sta: sta.StateAutomata
+    locus: Locus
 
     def __init__(self, locus: Locus):
         self.locus = locus
-        self.template_seq, self.reverse_seq = get_seqs(locus.sequence, load_flanks(locus.path))
-        self.problems = self.check_high_similarity(locus.sequence)
+        self.template_seq, self.reverse_seq = self.get_seqs(locus.sequence, load_flanks(locus.path))
+        self.check_high_similarity(locus.sequence)
         self.units, self.repeat_units, self.offsets = self.break_into_units(locus.sequence)
-        print('units:', self.units)
-        print('repeat_units:', self.repeat_units)
-        print('offsets:', self.offsets)
-
         self.temp_sta = sta.StateAutomata(self.template_seq)
         self.rev_sta = sta.StateAutomata(self.reverse_seq)
+
+    def get_seqs(self, sequence: str, flanks: Flanks):
+        """ Gets whole input sequence for state automaton using repeating part and flanks
+        """
+        tmp = flanks.template.left + sequence + flanks.template.right
+        rev = flanks.reverse.left + self.reverse_uniq_sequence(sequence) + flanks.reverse.right
+        return tmp, rev
+
+    @staticmethod
+    def reverse_uniq_sequence(sequence: str):
+        """ Transforms the regular expression to the reverse strand """
+        rev = ''
+        for i in sequence[::-1]:
+            rev += tmpl.ENCODING_DICT[i]
+        return rev
+
+    def get_out_path(self):
+        if caller_config.visualize_alignment:
+            return os.path.join(self.locus.path, tmpl.PREDICTIONS_SUBDIR, tmpl.WARPS)
+        else:
+            return None
 
     def init_pool(self):
         global out_warp_path
@@ -90,10 +97,7 @@ class CallerWrapper:
         global temp_sta
         global flank_length
 
-        if caller_config.visualize_alignment:
-            out_warp_path = os.path.join(self.locus.path, tmpl.PREDICTIONS_SUBDIR, tmpl.WARPS)
-        else:
-            out_warp_path = None
+        out_warp_path = self.get_out_path()
         rev_sta = self.rev_sta
         temp_sta = self.temp_sta
         flank_length = self.locus.flank_length
@@ -103,12 +107,19 @@ class CallerWrapper:
         Run WarpSTR automata for each piece of signal in workload
         """
         results = []
-        print('running automata')
         if main_config.threads > 1:
             with Pool(main_config.threads, initializer=self.init_pool) as pool:
                 results = pool.map(warpstr_call_parallel, workload)
         else:
-            results = [warpstr_call_sequential(i, self.locus.flank_length) for i in workload]
+            results = [
+                warpstr_call_sequential(
+                    i,
+                    self.locus.flank_length,
+                    sta=self.rev_sta if i.reverse else self.temp_sta,
+                    out_warp_path=self.get_out_path()
+                ) for i in workload
+            ]
+
         return results
 
     def check_high_similarity(self, sequence: str):
@@ -116,20 +127,17 @@ class CallerWrapper:
         Checks high similarity of expected signal values
         """
         template = sequence
-        reverse = reverse_uniq_sequence(sequence)
+        reverse = self.reverse_uniq_sequence(sequence)
 
-        diffs_t = self.get_diffs_for_all(template)
-        diffs_r = self.get_diffs_for_all(reverse)
-        print('diffs', diffs_t)
+        diffs_t = pore_model.get_diffs_for_all(template)
+        diffs_r = pore_model.get_diffs_for_all(reverse)
         out_path = os.path.join(self.locus.path, tmpl.SUMMARY_SUBDIR, 'state_similarity.csv')
         with open(out_path, 'w') as file:
             file.write('pattern,strand,mean_diff,median_diff\n')
             for i in diffs_t:
-                file.write('{pattern},template,{m_diff:.3f},{med_diff:.3f}\n'.format(pattern=i,
-                                                                                     m_diff=diffs_t[i][0], med_diff=diffs_t[i][1]))
+                file.write(f'{i},template,{diffs_t[i][0]:.3f},{diffs_t[i][1]:.3f}\n')
             for i in diffs_r:
-                file.write('{pattern},reverse,{m_diff:.3f},{med_diff:.3f}\n'.format(pattern=i,
-                                                                                    m_diff=diffs_r[i][0], med_diff=diffs_r[i][1]))
+                file.write(f'{i},reverse,{diffs_r[i][0]:.3f},{diffs_r[i][1]:.3f}\n')
 
         template_problems = []
         for i in diffs_t:
@@ -216,46 +224,7 @@ class CallerWrapper:
 
         return units, repeat_units, offsets
 
-    def get_diffs_for_all(self, template: str):
-        """
-        Gets differences between expected signals for each unit
-        """
-        diffs = {}
-        brackets = ['(', ')', '{', '}']
-        res = re.findall(r'[\(\{].*?[\)\}]', template)
-
-        for r in res:
-            base_pattern = ''.join([c for c in r if c not in brackets])
-            pattern = ['']
-            for char in base_pattern:
-                if char not in tmpl.DNA_DICT:
-                    for idx, p in enumerate(pattern):
-                        pattern[idx] = p + char
-                else:
-                    new: List[str] = []
-                    for iupac in tmpl.DNA_DICT[char]:
-                        for p in pattern:
-                            new.append(p+iupac)
-                    pattern = new
-            for p in pattern:
-                diffs[p] = self.get_consecutive_diff(p)
-
-        return diffs
-
-    def get_consecutive_diff(self, pattern: str) -> Tuple[float, float]:
-        """
-        Get mean and median differences between expected signals
-        """
-        rep = pattern*pore_model.kmersize
-        kmers = [rep[i:pore_model.kmersize+i] for i in range(len(pattern)+1)]
-        pore_values = np.abs(np.diff(
-            [pore_model.get_value(kmer) for kmer in kmers]))
-        return np.mean(pore_values), np.median(pore_values)
-
     def collapse_repeats(self, seq: str):
-        """
-        Collapses repeat units
-        """
         results = []
         slide = seq
         for i in self.repeat_units:
@@ -285,17 +254,6 @@ class CallerWrapper:
         return results
 
 
-# states, endstate, mask
-def warpstr_call_sequential(input_data: ReadSignal, flank_length: int) -> CallerResult:
-    # warper = Warper(flank_length, input_data.signal, states, endstate)
-    return CallerResult(
-        seq='TEST',
-        resc_seq='TEST',
-        cost=1.1,
-        resc_cost=1.1
-    )
-
-
 def warpstr_call_parallel(input_data: ReadSignal):
     """
     :param input_data: list of lists with signal and reverse info
@@ -317,19 +275,3 @@ def warpstr_call_parallel(input_data: ReadSignal):
 
     warpstr = WarpSTR(flank_length, states, endstate, repeat_mask, out_warp_path, input_data.reverse, input_data.name)
     return warpstr.run(input_data.signal)
-
-
-def get_seqs(sequence: str, flanks: Flanks):
-    """ Gets whole input sequence for state automaton using repeating part and flanks
-    """
-    tmp = flanks.template.left + sequence + flanks.template.right
-    rev = flanks.reverse.left + reverse_uniq_sequence(sequence) + flanks.reverse.right
-    return tmp, rev
-
-
-def reverse_uniq_sequence(sequence: str):
-    """ Transforms the regular expression to the reverse strand """
-    rev = ''
-    for i in sequence[::-1]:
-        rev += tmpl.ENCODING_DICT[i]
-    return rev

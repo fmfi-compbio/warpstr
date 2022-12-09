@@ -8,12 +8,10 @@ import numpy as np
 from scipy import interpolate
 
 import src.dtw_automata.StateAutomata as sta
+from src.config import caller_config, rescaler_config
 from src.dtw_automata.plotter import save_warp_img
-from src.input_handler.input import caller_config, rescaler_config
+from src.schemas import ReadSignal
 from src.squiggler.dna_sequence import get_reverse_strand
-
-# toto by malo byt nezavisle
-# pustit to cez __main__ funkciu
 
 
 @dataclass
@@ -341,7 +339,7 @@ def check_segments(segment_lengths: List[int]):
     return [idx for idx, i in enumerate(segment_lengths) if i >= (caller_config.states_in_segment+1)]
 
 
-def calc_ttest(arr1, arr2, win):
+def calc_ttest(arr1: np.ndarray, arr2: np.ndarray, win: int):
     """
     Calcs T-Test
     """
@@ -403,8 +401,8 @@ def find_event_borders(n_mask: List[bool], trace: np.ndarray, state_transitions:
     return start, end, start_idx, end_idx, bounds
 
 
-def mask_big_events(input_signal, start_idx, end_idx, bounds, badones):
-    badmask = [False]*start_idx
+def mask_big_events(input_signal: np.ndarray, start_idx: int, end_idx: int, bounds, badones):
+    badmask: List[bool] = [False]*start_idx
     badmask += [False]*(bounds[0]-start_idx)
 
     for idx, i in enumerate(bounds[1:]):
@@ -416,3 +414,15 @@ def mask_big_events(input_signal, start_idx, end_idx, bounds, badones):
     badmask += [False]*(end_idx-bounds[-1])
     badmask += [False]*(len(input_signal)-end_idx)
     return badmask
+
+
+# states, endstate, mask
+def warpstr_call_sequential(
+    input_data: ReadSignal,
+    flank_length: int,
+    sta: sta.StateAutomata,
+    out_warp_path: Optional[str]
+) -> CallerResult:
+    warpstr = WarpSTR(flank_length, sta.states, sta.endstate, sta.mask,
+                      out_warp_path, input_data.reverse, input_data.name)
+    return warpstr.run(input_data.signal)
