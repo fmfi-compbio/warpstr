@@ -20,7 +20,7 @@ class Genotype:
 
     @property
     def second_allele(self):
-        return int(find_nearest(self.group2, np.median(self.group2)) if self.is_hetero else '-')
+        return int(find_nearest(self.group2, np.median(self.group2))) if self.is_hetero else '-'
 
     @property
     def first_allele_sz(self):

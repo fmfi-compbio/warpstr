@@ -38,7 +38,7 @@ class Extractor:
         self.sample = sample
         self.full_sample = full_sample
         self.coord = coord
-        self.fast5s = []
+        self.fast5s = self.get_fast5_list()
         # find fast5s in this bam, mapped to genomic coordinates
 
         self.summary = []
@@ -48,6 +48,7 @@ class Extractor:
         Returns the list of fast5 readnames mapped to the input genomic coordinates
         """
         # fetch reads mapped to the locus using pysam
+        fast5s = []
         samfile = pysam.AlignmentFile(self.bamfile, 'r')
         chrom, start, end = process_coord(self.coord)
         for x in samfile.fetch(chrom, start, end):
@@ -55,11 +56,12 @@ class Extractor:
                 sam_position = start - x.reference_start
                 if x.is_reverse:
                     sam_position = len(x.query_sequence)-sam_position
-                self.fast5s.append(Read(
+                fast5s.append(Read(
                     name=x.query_name,
                     is_reverse=x.is_reverse,
                     sam_position=sam_position)
                 )
+        return fast5s
 
     def extract_from_multifast5s(self, out_path: str):
         """

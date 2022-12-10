@@ -19,6 +19,7 @@ class Fast5:
         self.data = None
         self.norm = None
         self.tag = None
+        self.fasta = None
         if not (get_data_only):
             self.use_basecall()
 
@@ -75,16 +76,15 @@ class Fast5:
         elif caller_config.spike_removal == 'Brute':
             self.data = self.brute_remove(self.data)
 
-    @property
-    def fasta(self):
-        try:
-            s = self.handle['Analyses'][self.bc_tag]['BaseCalled_template']
-            ['Fastq'][()].decode('ascii').split('\n')[1]
-        except KeyError as e:
-            print(f'Could not acquire FASTA sequence from .fast5 file due to error={e}')
-        else:
-            return s
-        return None
+    def load_fasta(self):
+        if self.fasta is None:
+            try:
+                s = self.handle['Analyses'][self.bc_tag]['BaseCalled_template']['Fastq'][()].decode('ascii').split('\n')[1]
+            except KeyError as e:
+                print(f'Could not acquire FASTA sequence from .fast5 file due to error={e}')
+            else:
+                return s
+        return self.fasta
 
     @staticmethod
     def brute_remove(data):

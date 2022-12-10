@@ -334,7 +334,7 @@ def extract_tr(overview_row: Tuple[ReadForExtraction, Locus]) -> FlankInRead:
 
 def load_overview_df(overview_path: str):
     df = pd.read_csv(overview_path)
-    if not df:
+    if df is None:
         raise RuntimeError(f'Loaded empty overview file from path={overview_path}')
     df.set_index('read_name', inplace=True)
     df.columns = df.columns.map(str)
@@ -383,7 +383,7 @@ def extract_tr_all(locus: Locus):
     new_col = []
     for row in df.itertuples():
         for res in results:
-            if res['read_id'] == row.Index:
+            if res.read_id == row.Index:
 
                 # parse result for future storage in overview file
                 new_col.append(process_row(res))
