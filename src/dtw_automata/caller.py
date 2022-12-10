@@ -10,7 +10,6 @@ from scipy import interpolate
 import src.dtw_automata.StateAutomata as sta
 from src.config import caller_config, rescaler_config
 from src.dtw_automata.plotter import save_warp_img
-from src.schemas import ReadSignal
 from src.squiggler.dna_sequence import get_reverse_strand
 
 
@@ -166,42 +165,45 @@ class WarpSTR:
             resc_cost=resc_cost
         )
 
+    def get_offset(self, state_idx: int):
+        return self.states[state_idx].seq_idx
+
     def get_sequence(self, reverse: bool, warp_result: WarpResult) -> str:
         """ Get sequence derived from traversal of states """
         seq: str = ''
         for i in warp_result.state_transitions:
             seq += self.states[i].kmer[-1]
 
-        offset = self.states[warp_result.state_transitions[0]].seq_idx
+        offset = self.get_offset(warp_result.state_transitions[0])
         seq = seq[self.flank_length-offset:-self.flank_length]
 
         return get_reverse_strand(seq) if reverse else seq
 
     def warp(self, signal: np.ndarray, mask: Optional[List[bool]] = None) -> WarpResult:
         mask = mask if mask else [False]*len(signal)
-        dtw_matrix = self.__calc_dtw_astates(signal, self.states, mask)
-        trace = self.__backtracking(dtw_matrix, self.states, signal, mask)
+        dtw_matrix = self._calc_dtw_astates(signal, self.states, mask)
+        trace = self._backtracking(dtw_matrix, self.states, signal, mask)
         return WarpResult(trace)
 
-    def __calc_cost(self, val1: float, val2: float):
+    def _calc_cost(self, val1: float, val2: float):
         return abs(val1-val2)
 
-    def __init_matrix(self, tlen: int, qlen: int):
+    def _init_matrix(self, tlen: int, qlen: int):
         return np.full((tlen, qlen), np.inf)
 
-    def __visited(self, value: np.float64):
+    def _visited(self, value: np.float64):
         return False if value == np.inf else True
 
-    def __calc_dtw_astates(self, signal: np.ndarray, states: List[sta.State], mask: List[bool]):
+    def _calc_dtw_astates(self, signal: np.ndarray, states: List[sta.State], mask: List[bool]):
 
-        dtw_matrix = self.__init_matrix(len(signal), len(states))
+        dtw_matrix = self._init_matrix(len(signal), len(states))
         # calc first state
         start_state = states[0]
-        start_val = self.__calc_cost(signal[0], start_state.value)
+        start_val = self._calc_cost(signal[0], start_state.value)
         dtw_matrix[0, 0] = start_val
 
         for i in range(1, caller_config.min_values_per_state+1):
-            dtw_matrix[0, i] = start_val+self.__calc_cost(signal[i], start_state.value)
+            dtw_matrix[0, i] = start_val+self._calc_cost(signal[i], start_state.value)
 
         # run dtw matrix
         boundary = self.flank_length-10
@@ -217,28 +219,28 @@ class WarpSTR:
                 elif (i > second_threshold and curr_st.seq_idx < after_repeat):
                     continue
 
-                if self.__visited(dtw_matrix[i-1, j]):
-                    cost = dtw_matrix[i-1, j] + self.__calc_cost(val, curr_st.value)
+                if self._visited(dtw_matrix[i-1, j]):
+                    cost = dtw_matrix[i-1, j] + self._calc_cost(val, curr_st.value)
                     if cost < dtw_matrix[i, j]:
                         dtw_matrix[i][j] = cost
 
                 for prev in curr_st.incoming:
                     prev_idx = prev.idx
 
-                    if self.__visited(dtw_matrix[i-back, prev_idx]) is False:
+                    if self._visited(dtw_matrix[i-back, prev_idx]) is False:
                         continue
                     prev_st_val = prev.value
                     skip_cost = dtw_matrix[i-back, prev_idx]
 
                     for skip in signal[i-back+1:i]:
-                        skip_cost += self.__calc_cost(skip, prev_st_val)
+                        skip_cost += self._calc_cost(skip, prev_st_val)
 
-                    skip_cost += self.__calc_cost(val, curr_st.value)
+                    skip_cost += self._calc_cost(val, curr_st.value)
                     if skip_cost < dtw_matrix[i, j]:
                         dtw_matrix[i, j] = skip_cost
         return dtw_matrix
 
-    def __backtracking(self, dtw_matrix: np.ndarray, states: List[sta.State], signal: np.ndarray, mask: List[bool]):
+    def _backtracking(self, dtw_matrix: np.ndarray, states: List[sta.State], signal: np.ndarray, mask: List[bool]):
         """ Find the best path through the states """
         newidx = self.endstate
         last = len(dtw_matrix)-1
@@ -253,7 +255,7 @@ class WarpSTR:
                 shift_delta = np.inf
             else:
                 shift = dtw_matrix[last-1][newidx] + \
-                    self.__calc_cost(signal[last], curr_state.value)
+                    self._calc_cost(signal[last], curr_state.value)
                 shift_delta = abs(shift - curr_dist)
 
             skip_delta = np.inf
@@ -270,9 +272,9 @@ class WarpSTR:
                     continue
                 skip_cost = dtw_matrix[last-back][prev_idx]
                 for skip in signal[last-back+1:last]:
-                    skip_cost += self.__calc_cost(skip, prev.value)
+                    skip_cost += self._calc_cost(skip, prev.value)
 
-                skip_cost += self.__calc_cost(signal[last], curr_state.value)
+                skip_cost += self._calc_cost(signal[last], curr_state.value)
                 delta = abs(skip_cost-curr_dist)
 
                 if delta < skip_delta:
@@ -319,7 +321,7 @@ def process_raws(method: str, vals: List[float]):
     elif method == 'median':
         return np.median(vals)
     else:
-        raise KeyError('Invalid alignment method')
+        raise KeyError(f'Invalid alignment method: {method}')
 
 
 def mask_bad_repeats(input_signal: np.ndarray, n_mask: List[bool], trace: np.ndarray, state_transitions: List[int]):
@@ -414,15 +416,3 @@ def mask_big_events(input_signal: np.ndarray, start_idx: int, end_idx: int, boun
     badmask += [False]*(end_idx-bounds[-1])
     badmask += [False]*(len(input_signal)-end_idx)
     return badmask
-
-
-# states, endstate, mask
-def warpstr_call_sequential(
-    input_data: ReadSignal,
-    flank_length: int,
-    sta: sta.StateAutomata,
-    out_warp_path: Optional[str]
-) -> CallerResult:
-    warpstr = WarpSTR(flank_length, sta.states, sta.endstate, sta.mask,
-                      out_warp_path, input_data.reverse, input_data.name)
-    return warpstr.run(input_data.signal)

@@ -1,6 +1,6 @@
 import os
 from multiprocessing import Pool
-from typing import List
+from typing import List, Optional
 
 import src.dtw_automata.StateAutomata as sta
 import src.templates as tmpl
@@ -9,7 +9,7 @@ from src.extractor.tr_extractor import Flanks, load_flanks
 from src.schemas import Fast5, Locus, ReadSignal
 from src.squiggler.pore_model import pore_model
 
-from .caller import WarpSTR, warpstr_call_sequential
+from .caller import WarpSTR
 from .overview import load_overview, store_collapsed, store_results
 from .plotter import plot_collapsed, plot_summaries
 
@@ -256,7 +256,7 @@ class CallerWrapper:
 
 def warpstr_call_parallel(input_data: ReadSignal):
     """
-    :param input_data: list of lists with signal and reverse info
+    :param input_data: list of ReadSignal objects
     :param rev_sta: global StateAutomata
     :param temp_sta: global StateAutomata
     :param flank_length: global int
@@ -274,4 +274,16 @@ def warpstr_call_parallel(input_data: ReadSignal):
         repeat_mask = temp_sta.mask
 
     warpstr = WarpSTR(flank_length, states, endstate, repeat_mask, out_warp_path, input_data.reverse, input_data.name)
+    return warpstr.run(input_data.signal)
+
+
+# states, endstate, mask
+def warpstr_call_sequential(
+    input_data: ReadSignal,
+    flank_length: int,
+    sta: sta.StateAutomata,
+    out_warp_path: Optional[str]
+):
+    warpstr = WarpSTR(flank_length, sta.states, sta.endstate, sta.mask,
+                      out_warp_path, input_data.reverse, input_data.name)
     return warpstr.run(input_data.signal)

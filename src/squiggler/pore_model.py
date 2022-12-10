@@ -47,9 +47,7 @@ class PoreModel():
         return self.table[self.table['kmer'] == kmer]['level_norm'].values[0]
 
     def get_diffs_for_all(self, sequence: str) -> Dict[str, Tuple[float, float]]:
-        """
-        Gets differences between expected signals for each unit
-        """
+        """ Get differences between expected signals for each unit """
         diffs: Dict[str, Tuple[float, float]] = {}
         brackets = ['(', ')', '{', '}']
         res = re.findall(r'[\(\{].*?[\)\}]', sequence)
@@ -68,7 +66,7 @@ class PoreModel():
                             new.append(p+iupac)
                     pattern = new
             for p in pattern:
-                diffs[p] = pore_model._get_consecutive_diff(p)
+                diffs[p] = self._get_consecutive_diff(p)
 
         return diffs
 
