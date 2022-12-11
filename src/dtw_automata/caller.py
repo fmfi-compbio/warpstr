@@ -129,87 +129,90 @@ class WarpSTR:
 
         # get alignment of rescaled warp
         resc_alignment = resc_warp_result.create_alignment(self.states, rescaled_signal)
-        _ = rescale_signal(rescaled_signal, resc_alignment)
+        rescaled_signal2 = rescale_signal(rescaled_signal, resc_alignment)
         resc_start, resc_end, _ = mask_bad_repeats(
-            rescaled_signal, self.repeat_mask, resc_warp_result.trace, resc_warp_result.state_transitions)
+            rescaled_signal2, self.repeat_mask, resc_warp_result.trace, resc_warp_result.state_transitions)
 
         # compute state-wise costs
         cost = np.mean([state_align.cost for state_align in alignment[start:end]])
         resc_cost = np.mean([state_align.cost for state_align in resc_alignment[resc_start:resc_end]])
 
         # store alignment as image for debugging
-        if self.out_warp_path:
-            out_path = os.path.join(
-                self.out_warp_path,
-                self.read_name+'_' + str(self.reverse)+'.png'
-            )
-
-            start, end = warp_result.delineate_tr_region(self.flank_length, self.states)
-            resc_start, resc_end = resc_warp_result.delineate_tr_region(self.flank_length, self.states)
-            if (end-start) > 2000 or (resc_end-resc_start) > 2000:
-                note = f'*Truncated to 2000 as original length was {resc_end-resc_start}'
-                end = start + 2000
-                resc_end = resc_start + 2000
-            else:
-                note = None
-            warped_sig = warp_result.get_warped_signal(self.states)[start:end]
-            origin_sig = signal[start:end]
-            resc_warped_sig = resc_warp_result.get_warped_signal(self.states)[resc_start:resc_end]
-            rescaled_sig = rescaled_signal[resc_start:resc_end]
-            save_warp_img(out_path, warped_sig, origin_sig, resc_warped_sig, rescaled_sig, note)
+        self._save_alignment(signal, warp_result, rescaled_signal, resc_warp_result)
 
         return CallerResult(
-            seq=self.get_sequence(self.reverse, warp_result),
-            resc_seq=self.get_sequence(self.reverse, resc_warp_result),
+            seq=self._get_sequence(self.reverse, warp_result),
+            resc_seq=self._get_sequence(self.reverse, resc_warp_result),
             cost=cost,
             resc_cost=resc_cost
         )
 
-    def get_offset(self, state_idx: int):
+    def _save_alignment(self, signal: np.ndarray, warp_result: WarpResult, rescaled_signal: np.ndarray,
+                        resc_warp_result: WarpResult):
+        if not self.out_warp_path:
+            return
+
+        out_path = os.path.join(
+            self.out_warp_path,
+            self.read_name+'_' + str(self.reverse)+'.png'
+        )
+
+        start, end = warp_result.delineate_tr_region(self.flank_length, self.states)
+        resc_start, resc_end = resc_warp_result.delineate_tr_region(self.flank_length, self.states)
+        if (end-start) > 2000 or (resc_end-resc_start) > 2000:
+            note = f'*Truncated to 2000 as original length was {resc_end-resc_start}'
+            end = start + 2000
+            resc_end = resc_start + 2000
+        else:
+            note = None
+        warped_sig = warp_result.get_warped_signal(self.states)[start:end]
+        origin_sig = signal[start:end]
+        resc_warped_sig = resc_warp_result.get_warped_signal(self.states)[resc_start:resc_end]
+        rescaled_sig = rescaled_signal[resc_start:resc_end]
+        save_warp_img(out_path, warped_sig, origin_sig, resc_warped_sig, rescaled_sig, note)
+
+    def _get_offset(self, state_idx: int):
         return self.states[state_idx].seq_idx
 
-    def get_sequence(self, reverse: bool, warp_result: WarpResult) -> str:
+    def _get_sequence(self, reverse: bool, warp_result: WarpResult) -> str:
         """ Get sequence derived from traversal of states """
         seq: str = ''
         for i in warp_result.state_transitions:
             seq += self.states[i].kmer[-1]
 
-        offset = self.get_offset(warp_result.state_transitions[0])
+        offset = self._get_offset(warp_result.state_transitions[0])
         seq = seq[self.flank_length-offset:-self.flank_length]
 
         return get_reverse_strand(seq) if reverse else seq
 
     def warp(self, signal: np.ndarray, mask: Optional[List[bool]] = None) -> WarpResult:
-        mask = mask if mask else [False]*len(signal)
-        dtw_matrix = self._calc_dtw_astates(signal, self.states, mask)
-        trace = self._backtracking(dtw_matrix, self.states, signal, mask)
+        mask_arr = np.asarray(mask, dtype=bool) if mask else np.full(len(signal), False)
+        dtw_matrix = self._calc_dtw_astates(signal, self.states, mask_arr)
+        trace = self._backtracking(dtw_matrix, self.states, signal, mask_arr)
         return WarpResult(trace)
-
-    def _calc_cost(self, val1: float, val2: float):
-        return abs(val1-val2)
 
     def _init_matrix(self, tlen: int, qlen: int):
         return np.full((tlen, qlen), np.inf)
 
-    def _visited(self, value: np.float64):
-        return False if value == np.inf else True
-
-    def _calc_dtw_astates(self, signal: np.ndarray, states: List[sta.State], mask: List[bool]):
+    def _calc_dtw_astates(self, signal: np.ndarray, states: List[sta.State], mask: np.ndarray):
 
         dtw_matrix = self._init_matrix(len(signal), len(states))
         # calc first state
         start_state = states[0]
-        start_val = self._calc_cost(signal[0], start_state.value)
+        start_val = abs(signal[0]-start_state.value)
         dtw_matrix[0, 0] = start_val
 
         for i in range(1, caller_config.min_values_per_state+1):
-            dtw_matrix[0, i] = start_val+self._calc_cost(signal[i], start_state.value)
+            # self._calc_cost(signal[i], start_state.value)
+            dtw_matrix[0, i] = start_val + abs(signal[i]-start_state.value)
 
-        # run dtw matrix
+        # bound dtw matrix from start and at end
         boundary = self.flank_length-10
         after_repeat = states[-1].seq_idx-boundary
         first_threshold = 6*boundary
         second_threshold = len(signal)-(6*boundary)
+
+        # compute matrix
         for i, val in enumerate(signal[caller_config.min_values_per_state:], start=caller_config.min_values_per_state):
             back = caller_config.min_values_per_state - 1 if mask[i] else caller_config.min_values_per_state
             for j, curr_st in enumerate(states):
@@ -219,28 +222,28 @@ class WarpSTR:
                 elif (i > second_threshold and curr_st.seq_idx < after_repeat):
                     continue
 
-                if self._visited(dtw_matrix[i-1, j]):
-                    cost = dtw_matrix[i-1, j] + self._calc_cost(val, curr_st.value)
+                if dtw_matrix[i-1, j] != np.inf:
+                    cost = dtw_matrix[i-1, j] + abs(val-curr_st.value)
                     if cost < dtw_matrix[i, j]:
                         dtw_matrix[i][j] = cost
 
                 for prev in curr_st.incoming:
                     prev_idx = prev.idx
 
-                    if self._visited(dtw_matrix[i-back, prev_idx]) is False:
+                    if dtw_matrix[i-back, prev_idx] == np.inf:
                         continue
                     prev_st_val = prev.value
                     skip_cost = dtw_matrix[i-back, prev_idx]
 
                     for skip in signal[i-back+1:i]:
-                        skip_cost += self._calc_cost(skip, prev_st_val)
+                        skip_cost += abs(skip-prev_st_val)
 
-                    skip_cost += self._calc_cost(val, curr_st.value)
+                    skip_cost += abs(val-curr_st.value)
                     if skip_cost < dtw_matrix[i, j]:
                         dtw_matrix[i, j] = skip_cost
         return dtw_matrix
 
-    def _backtracking(self, dtw_matrix: np.ndarray, states: List[sta.State], signal: np.ndarray, mask: List[bool]):
+    def _backtracking(self, dtw_matrix: np.ndarray, states: List[sta.State], signal: np.ndarray, mask: np.ndarray):
         """ Find the best path through the states """
         newidx = self.endstate
         last = len(dtw_matrix)-1
@@ -254,8 +257,7 @@ class WarpSTR:
             if dtw_matrix[last-1][newidx] == np.inf:
                 shift_delta = np.inf
             else:
-                shift = dtw_matrix[last-1][newidx] + \
-                    self._calc_cost(signal[last], curr_state.value)
+                shift = dtw_matrix[last-1][newidx] + abs(signal[last]-curr_state.value)
                 shift_delta = abs(shift - curr_dist)
 
             skip_delta = np.inf
@@ -272,9 +274,9 @@ class WarpSTR:
                     continue
                 skip_cost = dtw_matrix[last-back][prev_idx]
                 for skip in signal[last-back+1:last]:
-                    skip_cost += self._calc_cost(skip, prev.value)
+                    skip_cost += abs(skip-prev.value)
 
-                skip_cost += self._calc_cost(signal[last], curr_state.value)
+                skip_cost += abs(signal[last]-curr_state.value)
                 delta = abs(skip_cost-curr_dist)
 
                 if delta < skip_delta:
@@ -294,8 +296,8 @@ class WarpSTR:
                 trace.append(newidx)
 
         trace.append(newidx)
-        trace.reverse()
-        return np.asarray(trace, dtype=int)
+        # trace.reverse()
+        return np.asarray(trace, dtype=int)[::-1]
 
 
 def rescale_signal(signal: np.ndarray, alignments: List[StateAlignment]) -> np.ndarray:

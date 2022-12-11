@@ -2,10 +2,10 @@ import os
 from subprocess import call
 
 import src.templates as tmpl
-from src.config import guppy_config
+from src.config import GuppyConfig
 
 
-def guppy_annotate(script_path: str, locus_path: str, threads: int):
+def guppy_annotate(script_path: str, locus_path: str, threads: int, guppy_config: GuppyConfig):
     """Call script running Guppy annotate for all fast5 in locus path
 
     Args:

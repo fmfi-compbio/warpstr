@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import src.dtw_automata.StateAutomata as sta
 import src.templates as tmpl
-from src.config import caller_config, main_config
+from src.config import caller_config
 from src.extractor.tr_extractor import Flanks, load_flanks
 from src.schemas import Fast5, Locus, ReadSignal
 from src.squiggler.pore_model import pore_model
@@ -14,21 +14,22 @@ from .overview import load_overview, store_collapsed, store_results
 from .plotter import plot_collapsed, plot_summaries
 
 
-def main_wrapper(locus: Locus):
+def main_wrapper(locus: Locus, threads: int):
     """
     Wrapper function for processing workload of all reads
     """
     overview_path, df_overview = load_overview(locus.path)
     workload = get_workload(df_overview, locus.path)
 
-    dtw_automat = CallerWrapper(locus)
+    dtw_automat = CallerWrapper(locus, threads)
     results = dtw_automat.run_automata(workload)
 
     seq_results = [(i.seq, i.resc_seq) for i in results]
     cost_results = [(i.cost, i.resc_cost) for i in results]
 
     df_overview = store_results(overview_path, df_overview, seq_results, cost_results, locus.path)
-    plot_summaries(locus.path, df_overview)
+    plot_summaries(locus.path, df_overview, caller_config.visualize_strand,
+                   caller_config.visualize_phase, caller_config.visualize_cost)
 
     df_collapsed = None
     if len(dtw_automat.units) > 1:
@@ -61,14 +62,16 @@ class CallerWrapper:
     temp_sta: sta.StateAutomata
     rev_sta: sta.StateAutomata
     locus: Locus
+    threads: int
 
-    def __init__(self, locus: Locus):
+    def __init__(self, locus: Locus, threads: int):
         self.locus = locus
-        self.template_seq, self.reverse_seq = self.get_seqs(locus.sequence, load_flanks(locus.path))
+        self.threads = threads
+        template_seq, reverse_seq = self.get_seqs(locus.sequence, load_flanks(locus.path))
         self.check_high_similarity(locus.sequence)
         self.units, self.repeat_units, self.offsets = self.break_into_units(locus.sequence)
-        self.temp_sta = sta.StateAutomata(self.template_seq)
-        self.rev_sta = sta.StateAutomata(self.reverse_seq)
+        self.temp_sta = sta.StateAutomata(template_seq)
+        self.rev_sta = sta.StateAutomata(reverse_seq)
 
     def get_seqs(self, sequence: str, flanks: Flanks):
         """ Gets whole input sequence for state automaton using repeating part and flanks
@@ -107,8 +110,8 @@ class CallerWrapper:
         Run WarpSTR automata for each piece of signal in workload
         """
         results = []
-        if main_config.threads > 1:
-            with Pool(main_config.threads, initializer=self.init_pool) as pool:
+        if self.threads > 1:
+            with Pool(self.threads, initializer=self.init_pool) as pool:
                 results = pool.map(warpstr_call_parallel, workload)
         else:
             results = [

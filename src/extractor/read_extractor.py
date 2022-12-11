@@ -104,8 +104,6 @@ class Extractor:
         if len(fast5names_lst) != 0:
             for i in fast5names_lst:
                 rname = i[5:]
-                err_msg = '{read} not found or extracted'.format(read=rname)
-                handle_msg_err(err_msg)
                 to_delete = None
                 for j in self.fast5s:
                     if j.name == rname:

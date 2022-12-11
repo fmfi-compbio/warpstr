@@ -193,16 +193,18 @@ main_config = Config(
     flank_length=warpstr_config['flank_length']
 )
 
+
+def load_guppy_config():
+    if 'guppy_config' in warpstr_config:
+        return GuppyConfig(**warpstr_config['guppy_config'])
+    else:
+        return GuppyConfig()
+
+
 inputs = [InputConfig(**i) for i in warpstr_config.get('inputs', [])]
 
 
-print('NACITAVAM NASTAVENIE')
 rescaler_config = RescalerConfig(**warpstr_config['rescaling'])
 caller_config = CallerConfig(**warpstr_config['tr_calling_config'])
 alignment_config = AlignmentConfig(**warpstr_config['alignment'])
 genotyping_config = GenotypingConfig(**warpstr_config['genotyping_config'])
-
-if 'guppy_config' in warpstr_config:
-    guppy_config = GuppyConfig(**warpstr_config['guppy_config'])
-else:
-    guppy_config = GuppyConfig()

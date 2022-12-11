@@ -5,7 +5,6 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 
 import src.templates as tmpl
-from src.config import caller_config
 
 
 def plot_collapsed(df_overview, locus_path: str):
@@ -66,10 +65,8 @@ def save_warp_img(out_path: str, warped_signal, signal, resc_warped, resc_signal
     plt.close()
 
 
-def plot_summaries(locus_path: str, df_out):
-    """
-    Plots summaries for results
-    """
+def plot_summaries(locus_path: str, df_out, visualize_strand: bool, visualize_phase: bool, visualize_cost: bool):
+    """ Plots summaries for results """
     df_out['dtw_cost2'] = df_out['dtw_cost2'].astype(float)
     df_out['results'] = df_out['results'].astype(float)
     df_out['reverse'] = df_out['reverse'].astype(float)
@@ -83,7 +80,7 @@ def plot_summaries(locus_path: str, df_out):
 
     df_rev = df_out[(df_out['reverse'] == 1) & (df_out['saved'] == 1)].copy(deep=True)
     df_temp = df_out[(df_out['reverse'] == 0) & (df_out['saved'] == 1)].copy(deep=True)
-    if caller_config.visualize_strand:
+    if visualize_strand:
         out_path = os.path.join(
             locus_path, tmpl.SUMMARY_SUBDIR, 'predictions_strand.svg')
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(
@@ -130,7 +127,7 @@ def plot_summaries(locus_path: str, df_out):
         plt.savefig(out_path, bbox_inches='tight')
         plt.close()
 
-    if caller_config.visualize_phase:
+    if visualize_phase:
         out_path = os.path.join(
             locus_path, tmpl.SUMMARY_SUBDIR, 'predictions_phase.svg')
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(
@@ -150,7 +147,7 @@ def plot_summaries(locus_path: str, df_out):
         plt.savefig(out_path, bbox_inches='tight')
         plt.close()
 
-    if caller_config.visualize_cost:
+    if visualize_cost:
         out_path = os.path.join(
             locus_path, tmpl.SUMMARY_SUBDIR, 'predictions_cost.svg')
         axis = sns.scatterplot(data=df_saved, x='results', y='dtw_cost2')

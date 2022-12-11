@@ -13,7 +13,7 @@ def get_start_time():
     return start_time
 
 
-def print_time_duration(start_time, process, second_time):
+def print_time_duration(start_time: datetime, process: str, second_time: datetime):
     if second_time is None or second_time == start_time:
         use_time = start_time
     else:
@@ -67,4 +67,3 @@ def prepare_subdirs(locus_path: str):
         handle_subdir(basecalls, main_config.force_overwrite)
         seqs = os.path.join(predictions_subdir, 'sequences')
         handle_subdir(seqs, main_config.force_overwrite)
-        # handle_subdir(tr_calls_reports,main_config.force_overwrite)
