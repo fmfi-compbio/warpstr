@@ -3,8 +3,8 @@ from datetime import datetime
 
 import src.helpers as aux
 import src.templates as tmpl
+from src.caller import main_wrapper
 from src.config import genotyping_config, inputs, load_guppy_config, main_config, warpstr_config
-from src.dtw_automata import main_wrapper
 from src.extractor import extract_reads, extract_tr_all
 from src.genotyper import run_genotyping_complex, run_genotyping_overview
 from src.guppy_annotate.guppy import guppy_annotate
