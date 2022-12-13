@@ -7,10 +7,11 @@ from typing import List, Optional
 import numpy as np
 from scipy import interpolate
 
-import src.dtw_automata.StateAutomata as sta
 from src.config import caller_config, rescaler_config
-from src.dtw_automata.plotter import save_warp_img
 from src.squiggler.dna_sequence import get_reverse_strand
+
+from .automata import State
+from .plotter import save_warp_img
 
 
 @dataclass
@@ -58,10 +59,10 @@ class WarpResult:
     def state_transitions(self) -> List[int]:
         return self.trace[np.insert(np.diff(self.trace).astype(np.bool8), 0, True)]
 
-    def get_warped_signal(self, states: List[sta.State]):
+    def get_warped_signal(self, states: List[State]):
         return [states[i].value for i in self.trace]
 
-    def create_alignment(self, states: List[sta.State], signal: np.ndarray):
+    def create_alignment(self, states: List[State], signal: np.ndarray):
         alignments: List[StateAlignment] = []
         method = rescaler_config.method
 
@@ -94,7 +95,7 @@ class WarpResult:
                 )
         return alignments
 
-    def delineate_tr_region(self, flank_length: int, states: List[sta.State]):
+    def delineate_tr_region(self, flank_length: int, states: List[State]):
         offset = states[self.state_transitions[0]].seq_idx
         boundary = flank_length - 20
         start = bisect_left(self.trace, boundary - offset - 5)
@@ -106,7 +107,7 @@ class WarpResult:
 @dataclass
 class WarpSTR:
     flank_length: int
-    states: List[sta.State]
+    states: List[State]
     endstate: int
     repeat_mask: List[bool]
     out_warp_path: Optional[str]
@@ -194,7 +195,7 @@ class WarpSTR:
     def _init_matrix(self, tlen: int, qlen: int):
         return np.full((tlen, qlen), np.inf)
 
-    def _calc_dtw_astates(self, signal: np.ndarray, states: List[sta.State], mask: np.ndarray):
+    def _calc_dtw_astates(self, signal: np.ndarray, states: List[State], mask: np.ndarray):
 
         dtw_matrix = self._init_matrix(len(signal), len(states))
         # calc first state
@@ -243,7 +244,7 @@ class WarpSTR:
                         dtw_matrix[i, j] = skip_cost
         return dtw_matrix
 
-    def _backtracking(self, dtw_matrix: np.ndarray, states: List[sta.State], signal: np.ndarray, mask: np.ndarray):
+    def _backtracking(self, dtw_matrix: np.ndarray, states: List[State], signal: np.ndarray, mask: np.ndarray):
         """ Find the best path through the states """
         newidx = self.endstate
         last = len(dtw_matrix)-1

@@ -1,7 +1,6 @@
 import os
 import sys
 from dataclasses import dataclass
-from functools import lru_cache
 from multiprocessing import Pool
 from typing import List, Optional, Tuple
 
@@ -106,7 +105,6 @@ class FlankInRead:
             return 0
 
 
-@lru_cache(maxsize=4)
 def load_flanks(locus_path: str) -> Flanks:
     """
     Function loading template and reverse flanks
@@ -310,6 +308,11 @@ def extract_tr(overview_row: Tuple[ReadForExtraction, Locus]) -> FlankInRead:
         right_raw = Position(-1, -1)
         seq = None
     else:
+        left_alignment.position.start += start
+        right_alignment.position.start += start
+        left_alignment.position.end += start
+        right_alignment.position.end += start
+
         # prepare Move table from guppy for easier indexing
         # index Move table using aligned flank sequences
         moves_r = transform_moves(fast5.moves)

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import seaborn as sns
@@ -32,7 +32,13 @@ def plot_complex_repeats(df, cols, alleles, img_path: str):
     plt.close()
 
 
-def plot_clustering_preds(img_path: str, vals, bvals, alleles: Tuple[int, int], alleles_bc: Optional[Tuple[int, int]]):
+def plot_clustering_preds(
+    img_path: str,
+    vals: Tuple[List[int], List[int]],
+    bvals: Optional[Tuple[List[int], List[int]]],
+    alleles: Tuple[int, int],
+    alleles_bc: Optional[Tuple[int, int]]
+):
     if bvals is not None:
         _, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 7), sharey=True, gridspec_kw={'width_ratios': [1, 1]})
         axes[0] = sns.violinplot(data=vals, orient='vertical', split=True, scale='count',

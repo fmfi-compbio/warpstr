@@ -6,8 +6,8 @@ import pandas as pd
 from sklearn.mixture import BayesianGaussianMixture
 
 import src.templates as tmpl
+from src.caller.overview import load_overview
 from src.config import genotyping_config
-from src.dtw_automata.overview import load_overview
 from src.schemas import Genotype, find_nearest
 
 from .muscle import run_muscle

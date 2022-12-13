@@ -2,27 +2,25 @@ import os
 from multiprocessing import Pool
 from typing import List, Optional
 
-import src.dtw_automata.StateAutomata as sta
 import src.templates as tmpl
 from src.config import caller_config
 from src.extractor.tr_extractor import Flanks, load_flanks
 from src.schemas import Fast5, Locus, ReadSignal
 from src.squiggler.pore_model import pore_model
 
+from .automata import StateAutomata
 from .caller import WarpSTR
 from .overview import load_overview, store_collapsed, store_results
 from .plotter import plot_collapsed, plot_summaries
 
 
 def main_wrapper(locus: Locus, threads: int):
-    """
-    Wrapper function for processing workload of all reads
-    """
+    """ Load data for WarpSTR calling and handle results"""
     overview_path, df_overview = load_overview(locus.path)
     workload = get_workload(df_overview, locus.path)
 
-    dtw_automat = CallerWrapper(locus, threads)
-    results = dtw_automat.run_automata(workload)
+    call_wrapper = CallerWrapper(locus, threads)
+    results = call_wrapper.run(workload)
 
     seq_results = [(i.seq, i.resc_seq) for i in results]
     cost_results = [(i.cost, i.resc_cost) for i in results]
@@ -32,21 +30,19 @@ def main_wrapper(locus: Locus, threads: int):
                    caller_config.visualize_phase, caller_config.visualize_cost)
 
     df_collapsed = None
-    if len(dtw_automat.units) > 1:
-        print(f'Running complex genotyping as complex repeat units present: {dtw_automat.units}')
-        collapsed_results = [dtw_automat.collapse_repeats(i[1]) for i in seq_results]
+    if len(call_wrapper.units) > 1:
+        print(f'Running complex genotyping as complex repeat units present: {call_wrapper.units}')
+        collapsed_results = [call_wrapper.collapse_repeats(i[1]) for i in seq_results]
         reverse_lst = [i.reverse for i in workload]
         df_collapsed = store_collapsed(
-            collapsed_results, dtw_automat.units, dtw_automat.repeat_units, reverse_lst, locus)
+            collapsed_results, call_wrapper.units, call_wrapper.repeat_units, reverse_lst, locus)
         plot_collapsed(df_collapsed, locus.path)
 
     return df_overview, df_collapsed
 
 
 def get_workload(df_overview, path: str) -> List[ReadSignal]:
-    """
-    Prepares all the data for processing
-    """
+    """ Prepares all the data for processing """
     tr_regions: List[ReadSignal] = []
     for row in df_overview.itertuples():
         if row.saved:
@@ -59,8 +55,8 @@ def get_workload(df_overview, path: str) -> List[ReadSignal]:
 
 
 class CallerWrapper:
-    temp_sta: sta.StateAutomata
-    rev_sta: sta.StateAutomata
+    temp_sta: StateAutomata
+    rev_sta: StateAutomata
     locus: Locus
     threads: int
 
@@ -70,12 +66,11 @@ class CallerWrapper:
         template_seq, reverse_seq = self.get_seqs(locus.sequence, load_flanks(locus.path))
         self.check_high_similarity(locus.sequence)
         self.units, self.repeat_units, self.offsets = self.break_into_units(locus.sequence)
-        self.temp_sta = sta.StateAutomata(template_seq)
-        self.rev_sta = sta.StateAutomata(reverse_seq)
+        self.temp_sta = StateAutomata(template_seq)
+        self.rev_sta = StateAutomata(reverse_seq)
 
     def get_seqs(self, sequence: str, flanks: Flanks):
-        """ Gets whole input sequence for state automaton using repeating part and flanks
-        """
+        """ Prepare input sequences for state automaton """
         tmp = flanks.template.left + sequence + flanks.template.right
         rev = flanks.reverse.left + self.reverse_uniq_sequence(sequence) + flanks.reverse.right
         return tmp, rev
@@ -95,6 +90,7 @@ class CallerWrapper:
             return None
 
     def init_pool(self):
+        """ Set up required global parameters for parallel running"""
         global out_warp_path
         global rev_sta
         global temp_sta
@@ -105,10 +101,8 @@ class CallerWrapper:
         temp_sta = self.temp_sta
         flank_length = self.locus.flank_length
 
-    def run_automata(self, workload: List[ReadSignal]):
-        """
-        Run WarpSTR automata for each piece of signal in workload
-        """
+    def run(self, workload: List[ReadSignal]):
+        """ Run WarpSTR automata for each piece of signal in workload """
         results = []
         if self.threads > 1:
             with Pool(self.threads, initializer=self.init_pool) as pool:
@@ -126,9 +120,7 @@ class CallerWrapper:
         return results
 
     def check_high_similarity(self, sequence: str):
-        """
-        Checks high similarity of expected signal values
-        """
+        """ Determine similarity of consecutive states in a repeat """
         template = sequence
         reverse = self.reverse_uniq_sequence(sequence)
 
@@ -168,9 +160,7 @@ class CallerWrapper:
         return (template_problems, reverse_problems)
 
     def break_into_units(self, template: str):
-        """
-        Breaks input config sequence into repeat units
-        """
+        """ Breaks input config sequence into repeat units """
         que: List[int] = []
         units: List[str] = []
         offsets: List[int] = []
@@ -181,7 +171,7 @@ class CallerWrapper:
             elif i in (')', '}'):
                 val = que.pop()
                 if len(que) == 0:
-                    units.append(template[val:idx+1])  # .strip("()\{\}"))
+                    units.append(template[val:idx+1])
                     offsets.append(offset)
                     offset = 0
             elif len(que) == 0:
@@ -228,6 +218,7 @@ class CallerWrapper:
         return units, repeat_units, offsets
 
     def collapse_repeats(self, seq: str):
+        """ Disaggregate predicted sequence using repeat units """
         results = []
         slide = seq
         for i in self.repeat_units:
@@ -258,13 +249,31 @@ class CallerWrapper:
 
 
 def warpstr_call_parallel(input_data: ReadSignal):
-    """
-    :param input_data: list of ReadSignal objects
-    :param rev_sta: global StateAutomata
-    :param temp_sta: global StateAutomata
-    :param flank_length: global int
-    :param out_warp_path: global str
-    :returns list of sequence lengths
+    """Run WarpSTR calling algorithm
+
+    Presumes that the global parameters are set.
+
+    Parameters
+    ----------
+    input_data : ReadSignal
+        name: str
+            Name of the read
+        reverse: bool
+            Whether signal comes from reverse or template strand
+        signal: np.ndarray
+            Normalized signal corresponding to the STR with flanks
+
+    Returns
+    -------
+    CallerResult
+        seq: str
+            STR sequence as predicted by the first phase. Without flanks.
+        cost: float
+            State-wise cost of the first alignment.
+        resc_seq: str
+            STR sequence as predicted by the second phase. Without flanks.
+        resc_cost: float
+            State-wise cost of the second/rescaled alignment.
     """
 
     if input_data.reverse:
@@ -280,13 +289,43 @@ def warpstr_call_parallel(input_data: ReadSignal):
     return warpstr.run(input_data.signal)
 
 
-# states, endstate, mask
 def warpstr_call_sequential(
     input_data: ReadSignal,
     flank_length: int,
-    sta: sta.StateAutomata,
+    sta: StateAutomata,
     out_warp_path: Optional[str]
 ):
+    """Run WarpSTR calling algorithm.
+
+    No global variables are required to be set.
+
+    Parameters
+    ----------
+    input_data : ReadSignal
+        name: str
+            Name of the read
+        reverse: bool
+            Whether signal comes from reverse or template strand
+        signal: np.ndarray
+            Normalized signal corresponding to the STR with flanks
+    flank_length : int
+    sta : StateAutomata
+        States to align with the input data signal. Must correspond to the strand.
+    out_warp_path : Optional[str]
+        Path where to output alignment, if necessary.
+
+    Returns
+    -------
+    CallerResult
+        seq: str
+            STR sequence as predicted by the first phase. Without flanks.
+        cost: float
+            State-wise cost of the first alignment.
+        resc_seq: str
+            STR sequence as predicted by the second phase. Without flanks.
+        resc_cost: float
+            State-wise cost of the second/rescaled alignment.
+    """
     warpstr = WarpSTR(flank_length, sta.states, sta.endstate, sta.mask,
                       out_warp_path, input_data.reverse, input_data.name)
     return warpstr.run(input_data.signal)
