@@ -15,6 +15,8 @@ tr_region_extraction:   True   # Finds tandem repeat region in read using alignm
 tr_region_calling:      True   # Uses state automata with DTW alignment to find the number of repeats for each signal
 genotyping:             True   # Predicts the final allele lengths from the predicted repeat numbers of each read 
 
+force_overwrite: True
+
 # in case of using GUPPY (i.e. guppy_annotation=True), path to Guppy must be provided and info about .fast5 files
 guppy_config:
     path: PLACEHOLDER_GUPPY
