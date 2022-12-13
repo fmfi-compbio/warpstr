@@ -19,7 +19,7 @@ class ReadForExtraction:
     name: str
     run_id: str
     reverse: bool
-    approx_location: int
+    approx_location: Optional[int]
 
 
 @dataclass
@@ -276,7 +276,7 @@ def extract_tr(overview_row: Tuple[ReadForExtraction, Locus]) -> FlankInRead:
     readname: str = overview_row[0].name
     runid: str = overview_row[0].run_id
     reverse: bool = overview_row[0].reverse
-    approx_location: int = overview_row[0].approx_location
+    approx_location: Optional[int] = overview_row[0].approx_location
     locus: Locus = overview_row[1]
 
     fast5path = os.path.join(locus.path, tmpl.FAST5_SUBDIR, str(
@@ -292,13 +292,17 @@ def extract_tr(overview_row: Tuple[ReadForExtraction, Locus]) -> FlankInRead:
     except Exception as e:
         raise ValueError('Error={err} when loading fast5 from {path}'.format(err=e, path=fast5path))
 
-    if approx_location > len(fast5.fasta):
-        approx_location = len(fast5.fasta)
-    elif approx_location < 0:
-        approx_location = 0
+    if not approx_location:
+        start = 0
+        end = len(fast5.fasta)-1
+    else:
+        if approx_location > len(fast5.fasta):
+            approx_location = len(fast5.fasta)
+        elif approx_location < 0:
+            approx_location = 0
 
-    start = max(int(approx_location-0.05*len(fast5.fasta)-5000), 0)
-    end = min(int(approx_location+0.05*len(fast5.fasta)+5000), len(fast5.fasta)-1)
+        start = max(int(approx_location-0.05*len(fast5.fasta)-5000), 0)
+        end = min(int(approx_location+0.05*len(fast5.fasta)+5000), len(fast5.fasta)-1)
 
     ref_text = fast5.fasta[start:end]
     left_alignment, right_alignment = align_seq(ref_text, flank)
@@ -370,7 +374,7 @@ def extract_tr_all(locus: Locus):
             name=row.Index,
             run_id=row.run_id,
             reverse=row.reverse,
-            approx_location=row.sam_dist
+            approx_location=row.sam_dist if 'sam_dist' in row else None
         )
         read_list.append((region, locus))
 
