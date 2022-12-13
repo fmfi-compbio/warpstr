@@ -1,4 +1,4 @@
-name: warpstr_env
+name: warpstr
 channels:
   - bioconda
   - conda-forge
