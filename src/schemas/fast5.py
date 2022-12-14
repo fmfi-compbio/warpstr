@@ -2,32 +2,33 @@ import h5py
 import numpy as np
 from scipy.signal import medfilt
 
+from src.config import caller_config
+
 
 class Fast5:
     """
     Class for fast5 files and methods for processing them
     """
+    block_size: int
+    strand_start: int
+    fasta: str
+    moves: np.ndarray
 
-    def __init__(self, fast5path, config_input=None):
+    def __init__(self, fast5path: str, get_data_only: bool = False):
         self.handle = h5py.File(fast5path, 'r')
         self.data = None
-        self.fasta = None
-        self.moves = None
-        self.block_size = None
-        self.strand_start = None
         self.norm = None
         self.tag = None
-        for j in [i for i in self.handle['Analyses'].keys() if i.startswith("Basecall")]:
+        self.fasta = None
+        if not (get_data_only):
+            self.use_basecall()
+
+    def use_basecall(self):
+        for j in [i for i in self.handle['Analyses'].keys() if i.startswith('Basecall')]:
             if 'BaseCalled_template' in self.handle['Analyses'][j].keys():
                 self.tag = j[-3:]
-        self.bc_tag = "Basecall_1D_"+self.tag
-        self.seg_tag = "Segmentation_"+self.tag
-        if config_input is not None:
-            self.normalization = config_input['normalization']
-            self.spike_removal = config_input['spike_removal']
-        else:
-            self.normalization = "None"
-            self.spike_removal = "None"
+        self.bc_tag = 'Basecall_1D_'+self.tag
+        self.seg_tag = 'Segmentation_'+self.tag
 
     def get_tr_extract_reqs(self):
         """
@@ -50,7 +51,7 @@ class Fast5:
             self.data = np.asarray(
                 self.handle['Raw']['Reads'][rname]['Signal'])
             self.remove_spikes()
-            self.norm = self.normalize()
+            self.norm = normalize_signal_mad(self.data)
         if position is not None:
             return self.norm[position[0]:position[1]+1]
         return self.norm
@@ -64,51 +65,40 @@ class Fast5:
             return self.fasta[position[0]:position[1]]
         return self.fasta
 
-    def normalize(self):
-        """
-        Normalizes raw signal data
-        """
-        if self.normalization == "MAD":
-            return normalize_signal_mad(self.data)
-        return self.data
-
     def remove_spikes(self):
         """
         Removes outliers in the fast5 data
         """
-        if self.spike_removal == "median3":
+        if caller_config.spike_removal == 'median3':
             self.data = medfilt(self.data, 3)
-        elif self.spike_removal == "median5":
+        elif caller_config.spike_removal == 'median5':
             self.data = medfilt(self.data, 5)
-        elif self.spike_removal == "Brute":
-            self.data = brute_remove(self.data)
+        elif caller_config.spike_removal == 'Brute':
+            self.data = self.brute_remove(self.data)
 
     def load_fasta(self):
-        """
-        Loads fasta sequence stored in the fast5 data
-        """
         if self.fasta is None:
             try:
-                fasta = self.handle['Analyses'][self.bc_tag]['BaseCalled_template']['Fastq'][()].decode('ascii').split('\n')[1]
+                s = self.handle['Analyses'][self.bc_tag]['BaseCalled_template']['Fastq'][()].decode('ascii').split('\n')[1]
             except KeyError as e:
-                print('Could not acquire FASTA sequence from .fast5 file')
+                print(f'Could not acquire FASTA sequence from .fast5 file due to error={e}')
             else:
-                return fasta
+                return s
         return self.fasta
 
-
-def brute_remove(data):
-    """
-    Removes outliers in raw signal data using constants
-    :input data: numpy array with raw signal data containing outliers
-    :output out: raw signal data with outliers replaced by median of neighbours
-    """
-    out = data.copy()
-    thresh = np.where((data > 1000) | (data < 250))[0]
-    for i in thresh:
-        if i > 2:
-            out[i] = np.median(out[i-2:i+3])
-    return out
+    @staticmethod
+    def brute_remove(data):
+        """
+        Removes outliers in raw signal data using constants
+        :input data: numpy array with raw signal data containing outliers
+        :output out: raw signal data with outliers replaced by median of neighbours
+        """
+        out = data.copy()
+        thresh = np.where((data > 1000) | (data < 250))[0]
+        for i in thresh:
+            if i > 2:
+                out[i] = np.median(out[i-2:i+3])
+        return out
 
 
 def normalize_signal_mad(data):

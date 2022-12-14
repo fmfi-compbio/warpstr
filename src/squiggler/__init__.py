@@ -1,1 +1,1 @@
-from .Squiggler import Squiggler
+from .Squiggler import Squiggler  # type: ignore  # noqa: F401

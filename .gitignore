@@ -1,3 +1,5 @@
+example/config_test.yaml
+test/Human_STR_1108232/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

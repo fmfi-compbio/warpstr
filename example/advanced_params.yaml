@@ -6,7 +6,6 @@ pore_model_path: example/deps/template_median68pA.model     # path to the pore m
 # Parameters for TR calling
 tr_calling_config:
     spike_removal: Brute        # Allowed None, median3, median5, Brute # Defines whether to remove spikes. 
-    normalization: MAD          # possible: MAD
     min_values_per_state: 4     # Int, defines the minimum number of signal values required to map to one state
     states_in_segment: 6        # defines how many states are in window when segmenting
     min_state_similarity: 0.75  # Float, defines the minimum similarity between repeat states to raise a warning
@@ -14,11 +13,12 @@ tr_calling_config:
     visualize_phase: True       # Whether to output prediction comparison of phases, in summaries/predictions_phase.svg
     visualize_strand: True      # Whether to output prediction comparison of strands, in summaries/predictions_strand.svg
     visualize_cost: True        # Whether to output scatterplot of prediction vs state-wise cost, in summaries/predictions_cost.svg
-    rescaling:                  # The second phase of WarpSTR aligning - rescale signal values to better fit mapped expected signal values
-        reps_as_one: False      # Whether to merge signal points of the repeating state together or not
-        threshold: 0.5          # Max distance between state value and expected value to use the state for rescaling
-        max_std: 0.5            # Max std for signal points of the state to use that state for rescaling
-        method: mean            # Allowed: mean, median # Defines how to calculate state value from mapped signal points
+    
+rescaling:                  # The second phase of WarpSTR aligning - rescale signal values to better fit mapped expected signal values
+    reps_as_one: False      # Whether to merge signal points of the repeating state together or not
+    threshold: 0.5          # Max distance between state value and expected value to use the state for rescaling
+    max_std: 0.5            # Max std for signal points of the state to use that state for rescaling
+    method: mean            # Allowed: mean, median # Defines how to calculate state value from mapped signal points
 
 # Parameters for genotyping
 genotyping_config:

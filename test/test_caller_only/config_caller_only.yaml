@@ -1,0 +1,18 @@
+reference_path: PLACEHOLDER_REFERENCE # path to the reference, that was used to obtain SAM/BAM
+output: test/test_caller_only   # Where everything will be outputted
+
+# if you are re-running the analysis, here you can set which steps to skip by setting them to False
+single_read_extraction: False  # Extracts reads mapped to the locus and stores them in single .fast5 format
+guppy_annotation:       False  # Annotates .fast5 files with mapping between basecalled sequence and the signal
+exp_signal_generation:  True   # Generates expected signals for flanks and repeats
+tr_region_extraction:   False   # Finds tandem repeat region in read using alignment of basecalled sequence and reference repeat sequence
+tr_region_calling:      True   # Uses state automata with DTW alignment to find the number of repeats for each signal
+genotyping:             True   # Predicts the final allele lengths from the predicted repeat numbers of each read 
+
+loci:
+  - name: Human_STR_1108232
+    coord: chr4:183178378-183178421
+    # noting: AAAT[11]
+    # motif: AAAT
+    sequence: (AAAT)
+    # flank_length: 110

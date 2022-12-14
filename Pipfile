@@ -1,0 +1,21 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+numpy = "==1.20"
+biopython = "==1.75"
+cached-property = "*"
+h5py = "==3.4.0"
+matplotlib = "==3.3.4"
+multiprocess = "==0.70.12.2"
+pandas = "==1.2.5"
+pysam = "==0.16.0.1"
+pyyaml = "==5.4.1"
+scikit-learn = "==1.0.1"
+scipy = "==1.6.3"
+seaborn = "==0.11.1"
+
+[requires]
+python_version = "3.7"
