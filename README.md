@@ -256,7 +256,7 @@ If you have already .fast5 signals with localized STR regions, you again must si
 - `l_start_raw` - signal position where the left flank starts.
 - `r_end_raw` - signal position where the right flank ends.
 
-The example case is in the repository in `test/test_caller_only`. To run, provide the reference_path there in the config, and run using:
+The example case is in the repository in `test/test_caller_only`. To run, provide the reference_path (!!!) there in the config, and run using:
 
 ```bash
 python prepare_caller_only.py --config test/test_caller_only/config_caller_only.yaml --file test/test_caller_only/example.csv
