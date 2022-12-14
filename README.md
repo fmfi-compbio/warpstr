@@ -246,8 +246,8 @@ In addition, there would be 'l_start_raw', 'r_end_raw' values, corresponding to 
 
 If you have already .fast5 signals with localized STR regions, you again must simulate the output of this step. The other option is to use our script `prepare_caller_only.py`. It requires two things:
 
-`config file` - the same as you would use further. The important thing is to set the `output` and `loci`
-`.csv file` - with one row for .fast5 signal, and these required columns:
+`--config CONFIG` - the same as you would use further. The important thing is to set the `output` and `loci`
+`--file CSV` - .csv file with one row for .fast5 signal, and these required columns:
 
 - `fast5_path` - path to the .fast5 read path.
 - `locus` - name of the locus associated with the read.
