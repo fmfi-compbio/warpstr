@@ -1,10 +1,10 @@
-#~/bin/bash
+#!/bin/bash
 
 echo Running WarpSTR test run case
 echo Please provide path to the GRCh38 reference, i.e. /path/GRCh38.fa
-read REF
+read -r REF
 echo Please provide path to the guppy executable, i.e. /path/guppy_basecaller
-read GUPPY
+read -r GUPPY
 
 cp 'test/config_template.yaml' 'test/config_test.yaml'
 sed -i "s|PLACEHOLDER_REFERENCE|$REF|" 'test/config_test.yaml'

@@ -33,6 +33,8 @@ class Locus:
         if not flank_length:
             self.flank_length = main_config.flank_length
             print(f'Flank length not set for locus - using default value of {main_config.flank_length}')
+        else:
+            self.flank_length = flank_length
 
         if sequence:
             self.sequence = sequence

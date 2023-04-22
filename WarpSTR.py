@@ -11,7 +11,7 @@ from src.guppy_annotate.guppy import guppy_annotate
 from src.schemas import Locus
 from src.squiggler import Squiggler
 
-# Main TRcall algorithm code starts below
+# Main WarpSTR algorithm code starts below
 
 
 def run():
