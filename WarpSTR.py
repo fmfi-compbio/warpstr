@@ -41,6 +41,8 @@ def run():
 
         # prepare all possible output subdirs
         aux.prepare_subdirs(locus.path)
+        with open(os.path.join(locus.path, 'sequence.txt'), 'w') as f:
+            f.write(locus.sequence)
 
         # 1st step: finding reads mapped to the desired locus and extracting them as single fast5s
         if main_config.single_read_extraction:
