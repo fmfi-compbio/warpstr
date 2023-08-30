@@ -37,13 +37,13 @@ class Locus:
             self.flank_length = flank_length
 
         if sequence:
-            self.sequence = sequence
+            self.sequence = sequence.upper()
             self.noting = noting
 
         else:
             seq, noting = self.prepare_sequence(main_config.reference_path)
             self.noting = noting
-            self.sequence = seq
+            self.sequence = seq.upper()
 
     def prepare_sequence(self, reference_path: str):
         fa_seq: str = pysam.faidx(reference_path, self.coord)

@@ -72,4 +72,4 @@ class Squiggler:
         with open(fasta_path, 'w') as file:
             file.write('type,sequence\n')
             for idx, i in enumerate(tmpl.LOCUS_NAMES):
-                file.write(i+','+sequences[idx]+'\n')
+                file.write(i+','+sequences[idx].upper()+'\n')
