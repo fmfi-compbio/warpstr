@@ -48,7 +48,8 @@ class Locus:
     def prepare_sequence(self, reference_path: str):
         fa_seq: str = pysam.faidx(reference_path, self.coord)
         seq = ''.join(fa_seq.split('\n')[1:])
-        noting_seq = ''.join(fa_seq.split('\n')[1:])
+        seq = seq.upper()
+        noting_seq = seq
         if len(seq) <= 1:
             raise ValueError(f'Reference repeat sequence is empty for {self.name} - check coord {self.coord}')
         if not self.motif:
