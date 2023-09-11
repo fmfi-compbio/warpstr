@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
-from matplotlib.collections import PolyCollection
 
 
 def plot_complex_repeats(
@@ -26,11 +25,8 @@ def plot_complex_repeats(
             axes[idx] = sns.violinplot(data=ex_df, x=name, y=col, hue='allele', orient='vertical',
                                        split=False, scale='count', whis=np.inf, inner=None, ax=axes[idx])
             plt.setp(axes[idx].collections, alpha=.3)
-            first = [r for r in axes[idx].get_children() if type(r) == PolyCollection]
-            c1 = first[0].get_facecolor()[0]
-            c2 = first[1].get_facecolor()[0]
-            axes[idx].axhline(y=val1, color=c1, linestyle='--')
-            axes[idx].axhline(y=val2, color=c2, linestyle='--')
+            axes[idx].axhline(y=val1, color='b', linestyle='--')
+            axes[idx].axhline(y=val2, color='b', linestyle='--')
             axes[idx] = sns.stripplot(data=ex_df, x=name, y=col, hue='allele', orient='vertical',
                                       dodge=True, size=6, alpha=0.8, jitter=0.3, ax=axes[idx])
             axes[idx].get_legend().remove()

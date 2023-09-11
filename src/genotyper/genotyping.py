@@ -160,7 +160,7 @@ def run_genotyping_complex(locus_path: str, df: Union[pd.DataFrame, None]):
 
         outpath = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, tmpl.COMPLEX_SUBDIR, 'complex_alleles.csv')
         with open(outpath, 'w') as f:
-            f.write('unit,allele1_repeats, allele2_repeats\n')
+            f.write('unit,allele1_repeats,allele2_repeats\n')
             for idx, col in enumerate(cols):
                 f.write(f'{col},{alleles[0][idx]},{alleles[2][idx]}\n')
     else:
