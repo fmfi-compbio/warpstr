@@ -1,32 +1,49 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
 
 
-def plot_complex_repeats(df, cols, alleles, img_path: str):
-    fig, axes = plt.subplots(nrows=len(cols), ncols=1, figsize=(8, 6*len(cols)))
+def plot_complex_repeats(
+    df: pd.DataFrame,
+    cols: List[str],
+    alleles: Tuple[List[int], int, List[int], int],
+    homozygous: bool,
+    img_path: str
+):
+    _, axes = plt.subplots(nrows=len(cols), ncols=1, figsize=(8, 6*len(cols)))
     for idx, col in enumerate(cols):
         ex_df = df
-        val1 = alleles[0][idx]
-        val2 = alleles[2][idx]
-        name = 'repeat numbers: '+str(val1)+','+str(val2)
-        ex_df[name] = ''
-        axes[idx] = sns.violinplot(data=ex_df, x=name, y=col, hue='allele', orient='vertical',
-                                   split=False, scale='count', whis=np.inf, inner=None, ax=axes[idx])
-        plt.setp(axes[idx].collections, alpha=.3)
-        first = [r for r in axes[idx].get_children() if type(r) == PolyCollection]
-        c1 = first[0].get_facecolor()[0]
-        c2 = first[1].get_facecolor()[0]
-        if val1 != '-':
+
+        if not homozygous:
+            val1 = alleles[0][idx]
+            val2 = alleles[2][idx]
+            name = 'repeat numbers: '+str(val1)+','+str(val2)
+            ex_df[name] = ''
+            axes[idx] = sns.violinplot(data=ex_df, x=name, y=col, hue='allele', orient='vertical',
+                                       split=False, scale='count', whis=np.inf, inner=None, ax=axes[idx])
+            plt.setp(axes[idx].collections, alpha=.3)
+            first = [r for r in axes[idx].get_children() if type(r) == PolyCollection]
+            c1 = first[0].get_facecolor()[0]
+            c2 = first[1].get_facecolor()[0]
             axes[idx].axhline(y=val1, color=c1, linestyle='--')
-        if val2 != '-':
             axes[idx].axhline(y=val2, color=c2, linestyle='--')
-        axes[idx] = sns.stripplot(data=ex_df, x=name, y=col, hue='allele', orient='vertical',
-                                  dodge=True, size=6, alpha=0.8, jitter=0.3, ax=axes[idx])
-        axes[idx].get_legend().remove()
+            axes[idx] = sns.stripplot(data=ex_df, x=name, y=col, hue='allele', orient='vertical',
+                                      dodge=True, size=6, alpha=0.8, jitter=0.3, ax=axes[idx])
+            axes[idx].get_legend().remove()
+        else:
+            val1 = alleles[0][idx]
+            name = 'repeat numbers: '+str(val1)+',-'
+            ex_df[name] = ''
+            axes[idx] = sns.violinplot(data=ex_df, x=name, y=col, orient='vertical',
+                                       split=False, scale='count', whis=np.inf, inner=None, ax=axes[idx])
+            plt.setp(axes[idx].collections, alpha=.3)
+            axes[idx].axhline(y=val1, color='b', linestyle='--')
+            axes[idx] = sns.stripplot(data=ex_df, x=name, y=col, orient='vertical',
+                                      dodge=True, size=6, alpha=0.8, jitter=0.3, ax=axes[idx])
 
     plt.savefig(img_path, bbox_inches='tight', format='svg')
     plt.close()
