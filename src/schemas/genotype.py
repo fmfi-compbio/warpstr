@@ -35,5 +35,5 @@ class Genotype:
         return (self.first_allele, self.second_allele)
 
 
-def find_nearest(array: List[int], value: float):
+def find_nearest(array: List[int], value: float) -> float:
     return array[(np.abs(np.asarray(array) - value)).argmin()]

@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -14,23 +14,22 @@ from .muscle import run_muscle
 from .plotter import plot_clustering_preds, plot_complex_repeats
 
 
-def decode_alleles_complex(gmm_out_dict, df):
+def decode_alleles_complex(gmm_out_dict: Dict[str, Any], df: pd.DataFrame):
     if gmm_out_dict['is_hetero']:
         df1 = df.loc[gmm_out_dict['group1']]
         df2 = df.loc[gmm_out_dict['group2']]
-        mediangroup1 = []
+        mediangroup1: List[int] = []
         for col in df1.columns:
             if col != 'reverse':
-                mediangroup1.append(find_nearest(df1[col], np.median(df1[col])))
+                mediangroup1.append(int(find_nearest(df1[col].values, np.median(df1[col]))))
         mediangroup1_cnt = len(gmm_out_dict['group1'])
-        mediangroup2 = []
+        mediangroup2: List[int] = []
         for col in df2.columns:
             if col != 'reverse':
-                mediangroup2.append(find_nearest(df2[col], np.median(df2[col])))
+                mediangroup2.append(int(find_nearest(df2[col].values, np.median(df2[col]))))
         mediangroup2_cnt = len(gmm_out_dict['group2'])
     else:
         df1 = df.loc[gmm_out_dict['group1']]
-        df2 = None
         mediangroup1 = []
         for col in df1.columns:
             if col != 'reverse':
@@ -119,7 +118,7 @@ def store_predictions(gt: Genotype, gt_bc: Optional[Genotype], locus_path: str):
         print(f'Allele lengths as given by basecall: {gt_bc.alleles}')
 
 
-def run_genotyping_complex(locus_path: str, df):
+def run_genotyping_complex(locus_path: str, df: Union[pd.DataFrame, None]):
     if df is None:
         inpath = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, tmpl.COMPLEX_SUBDIR, 'complex_repeat_units.csv')
         if os.path.isfile(inpath):
@@ -148,12 +147,37 @@ def run_genotyping_complex(locus_path: str, df):
         out['group2'] = [idx for idx, g in zip(df.index, preds) if g == 1]
         out['predictions'] = preds
 
-    alleles = decode_alleles_complex(out, df)
     if out['predictions'] is not None:
         df['allele'] = preds
 
+    alleles = decode_alleles_complex(out, df)
+    if out['predictions'] is not None:
+        homozygous = False
+        print('Genotyped complex repeats in 2 alleles:')
+        for idx, col in enumerate(cols):
+            print(f'Unit: {col:10} Repeats: {alleles[0][idx]:5} {alleles[2][idx]:5}', )
+        print(f'There were {alleles[1]} reads for allele1 and {alleles[3]} for allele2')
+
+        outpath = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, tmpl.COMPLEX_SUBDIR, 'complex_alleles.csv')
+        with open(outpath, 'w') as f:
+            f.write('unit,allele1_repeats,allele2_repeats\n')
+            for idx, col in enumerate(cols):
+                f.write(f'{col},{alleles[0][idx]},{alleles[2][idx]}\n')
+    else:
+        homozygous = True
+        print('Genotyped complex repeats in a homozygous allele:')
+        for idx, col in enumerate(cols):
+            print(f'Unit: {col:10} Repeats: {alleles[0][idx]:5} {alleles[2]:5}', )
+        print(f'There were {alleles[1]} reads for allele1 and {alleles[3]} for allele2')
+
+        outpath = os.path.join(locus_path, tmpl.PREDICTIONS_SUBDIR, tmpl.COMPLEX_SUBDIR, 'complex_alleles.csv')
+        with open(outpath, 'w') as f:
+            f.write('unit,allele1_repeats, allele2_repeats\n')
+            for idx, col in enumerate(cols):
+                f.write(f'{col},{alleles[0][idx]},{alleles[2]}\n')
+
     img_path = os.path.join(locus_path, tmpl.SUMMARY_SUBDIR, 'complex_genotypes.svg')
-    plot_complex_repeats(df, cols, alleles, img_path)
+    plot_complex_repeats(df, cols, alleles, homozygous, img_path)
 
 
 def run_genotyping(unfilt_vals: List[int]):
